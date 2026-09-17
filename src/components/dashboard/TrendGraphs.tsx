@@ -26,7 +26,7 @@ export function TrendGraphs({ trendData, activePlatforms }: TrendGraphsProps) {
 
   const charts = [
     { title: "Follower Trend", key: "followers" as const },
-    { title: "Views Trend", key: "views" as const },
+    { title: "Views / Published Content Trend", key: "views" as const },
   ];
 
   return (
