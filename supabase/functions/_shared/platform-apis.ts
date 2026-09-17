@@ -31,42 +31,21 @@ export async function fetchFacebookStats(
       return { followers: 0, totalViews: 0, error: `Facebook API: ${msg}` };
     }
 
-    // Facebook has no account-level lifetime views field. Sum every accessible
-    // published Page video, following every pagination cursor.
-    let totalViews = 0;
-    let nextUrl: string | null =
-      `https://graph.facebook.com/v24.0/${pageId}/published_videos?fields=id,views&limit=100&access_token=${accessToken}`;
-    let fetchedAnyPage = false;
-    let firstInsightsError = "";
-
-    while (nextUrl) {
-      const videosRes = await fetch(nextUrl);
-      const videosText = await videosRes.text();
-      let videosData: Record<string, unknown>;
-      try { videosData = JSON.parse(videosText); } catch {
-        firstInsightsError ||= videosText.substring(0, 200);
-        break;
-      }
-      if (!videosRes.ok || videosData.error) {
-        const errObj = videosData.error as Record<string, string> | undefined;
-        firstInsightsError ||= errObj?.message ?? `HTTP ${videosRes.status}`;
-        break;
-      }
-
-      fetchedAnyPage = true;
-      const videos = (videosData.data as Array<{ views?: number }> | undefined) ?? [];
-      totalViews += videos.reduce((sum, video) => sum + Number(video.views ?? 0), 0);
-      const paging = videosData.paging as { next?: string } | undefined;
-      nextUrl = paging?.next ?? null;
+    // Store published content count in totalViews for schema compatibility.
+    // The frontend labels this value as Published Posts, never as views.
+    let publishedPosts = 0;
+    const postsRes = await fetch(
+      `https://graph.facebook.com/v24.0/${pageId}/published_posts?fields=id&limit=1&summary=true&access_token=${accessToken}`,
+    );
+    if (postsRes.ok) {
+      const postsData = await postsRes.json();
+      publishedPosts = Number(postsData.summary?.total_count ?? 0);
     }
 
     return {
       followers: Number(data.followers_count ?? data.fan_count ?? 0),
-      totalViews,
+      totalViews: publishedPosts,
       accountName: String(data.name ?? ""),
-      ...(!fetchedAnyPage && firstInsightsError
-        ? { error: `Facebook video views unavailable: ${firstInsightsError}` }
-        : {}),
     };
   } catch (err) {
     return { followers: 0, totalViews: 0, error: `Facebook fetch failed: ${String(err)}` };
@@ -96,86 +75,12 @@ export async function fetchInstagramStats(
       return { followers: 0, totalViews: 0, error: `Instagram API: ${msg}` };
     }
 
-    // Instagram has no account-level lifetime view count. Page through every
-    // accessible media object and add its lifetime views. "views" is the
-    // current unified metric; older video/Reel objects may only expose plays
-    // or video_views, so those are queried as fallbacks one at a time.
-    let totalViews = 0;
-    let mediaUrl: string | null =
-      `https://graph.facebook.com/v24.0/${igUserId}/media?fields=id,media_type&limit=100&access_token=${accessToken}`;
-    let mediaCount = 0;
-    let readableMediaCount = 0;
-    let firstInsightsError = "";
-
-    while (mediaUrl) {
-      const mediaRes = await fetch(mediaUrl);
-      const mediaText = await mediaRes.text();
-      let mediaData: Record<string, unknown>;
-      try { mediaData = JSON.parse(mediaText); } catch {
-        firstInsightsError ||= mediaText.substring(0, 200);
-        break;
-      }
-      if (!mediaRes.ok || mediaData.error) {
-        const errObj = mediaData.error as Record<string, string> | undefined;
-        firstInsightsError ||= errObj?.message ?? `HTTP ${mediaRes.status}`;
-        break;
-      }
-
-      const media = (mediaData.data as Array<{ id: string }> | undefined) ?? [];
-      mediaCount += media.length;
-
-      // A small concurrency window avoids Meta rate-limit spikes on large accounts.
-      for (let i = 0; i < media.length; i += 10) {
-        const chunk = media.slice(i, i + 10);
-        const results = await Promise.all(chunk.map(async ({ id }) => {
-          const metrics = ["views", "plays", "video_views"];
-          let lastError = "";
-          for (const metric of metrics) {
-            const insightRes = await fetch(
-              `https://graph.facebook.com/v24.0/${id}/insights?metric=${metric}&access_token=${accessToken}`,
-            );
-            const insightText = await insightRes.text();
-            let insightData: Record<string, unknown>;
-            try { insightData = JSON.parse(insightText); } catch {
-              lastError = insightText.substring(0, 200);
-              continue;
-            }
-            if (!insightRes.ok || insightData.error) {
-              const errObj = insightData.error as Record<string, string> | undefined;
-              lastError = errObj?.message ?? `HTTP ${insightRes.status}`;
-              continue;
-            }
-            const rows = (insightData.data as Array<{
-              values?: Array<{ value?: number }>;
-              total_value?: { value?: number };
-            }> | undefined) ?? [];
-            const value = Number(rows[0]?.total_value?.value ?? rows[0]?.values?.[0]?.value ?? 0);
-            return { readable: true, value };
-          }
-          return { readable: false, value: 0, error: lastError };
-        }));
-
-        for (const result of results) {
-          if (result.readable) {
-            readableMediaCount += 1;
-            totalViews += result.value;
-          } else if (result.error) {
-            firstInsightsError ||= result.error;
-          }
-        }
-      }
-
-      const paging = mediaData.paging as { next?: string } | undefined;
-      mediaUrl = paging?.next ?? null;
-    }
-
+    // Store media_count in totalViews for schema compatibility.
+    // The frontend labels this value as Media Published, never as views.
     return {
       followers: Number(data.followers_count ?? 0),
-      totalViews,
+      totalViews: Number(data.media_count ?? 0),
       accountName: String(data.username ?? data.name ?? ""),
-      ...(mediaCount > 0 && readableMediaCount === 0
-        ? { error: `Instagram views unavailable. Check Professional Account and instagram_manage_insights permission. ${firstInsightsError}` }
-        : {}),
     };
   } catch (err) {
     return { followers: 0, totalViews: 0, error: `Instagram fetch failed: ${String(err)}` };
