@@ -5,7 +5,7 @@ export function StatsBand() {
   const totalFollowersAll = useDashboardStore((s) => s.totalFollowersAll);
 
   const totalFollowers = totalFollowersAll();
-  const activeCount = countries.filter((country) => country.activePlatforms.length > 0).length;
+  const activeCount = countries.length;
   const lastSync = countries.reduce((latest, c) =>
     c.lastUpdated > latest ? c.lastUpdated : latest, countries[0]?.lastUpdated ?? ""
   );
