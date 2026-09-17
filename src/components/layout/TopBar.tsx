@@ -4,7 +4,7 @@ import { supabase } from "../../lib/supabase";
 
 export function TopBar({ showBack, backTo }: { showBack?: boolean; backTo?: string }) {
   const location = useLocation();
-  const isHome = location.pathname === "/";
+  const isHome = location.pathname === "/map";
   const { user } = useAuth();
 
   const handleLogout = async () => {
