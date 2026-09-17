@@ -9,6 +9,12 @@ import { fetchPlatformStats, refreshFacebookToken, refreshYouTubeToken, refreshI
 import { decryptToken, encryptToken } from "../_shared/crypto.ts";
 import { handleCors, corsHeaders } from "../_shared/cors.ts";
 
+function shouldRefreshSoon(conn: Record<string, unknown>): boolean {
+  if (!conn.token_expires_at) return false;
+  const expiresAt = new Date(conn.token_expires_at as string).getTime();
+  return Number.isFinite(expiresAt) && expiresAt <= Date.now() + 7 * 86400000;
+}
+
 function isAuthError(errorMsg: string): boolean {
   const lower = errorMsg.toLowerCase();
   return lower.includes("invalid authentication") ||
@@ -84,7 +90,9 @@ serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "Connection not found" }), { status: 404, headers });
     }
 
-    if (conn.token_expires_at && new Date(conn.token_expires_at) < new Date()) {
+    // Refresh seven days before expiry so scheduled polling does not wait for
+    // the token to fail. Existing connections without expiry metadata are left unchanged.
+    if (shouldRefreshSoon(conn)) {
       const refreshed = await tryRefreshToken(conn, supabase);
       if (!refreshed) {
         await supabase
@@ -97,7 +105,7 @@ serve(async (req: Request) => {
           actor: "System",
           country_id: conn.country_id,
           platform: conn.platform,
-          details: `Sync skipped — token expired for "${conn.account_name}"`,
+          details: `Sync skipped — token refresh failed for "${conn.account_name}"`,
         });
 
         return new Response(JSON.stringify({ ok: false, reason: "token_expired" }), { headers });
