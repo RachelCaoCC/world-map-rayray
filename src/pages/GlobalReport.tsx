@@ -107,8 +107,8 @@ export function GlobalReport() {
 
   return (
     <Layout showBack backTo="/map">
-      <div className="h-full overflow-y-auto bg-slate-50 print:overflow-visible">
-        <main className="mx-auto max-w-7xl px-6 py-6">
+      <div className="global-report-print h-full overflow-y-auto bg-slate-50 print:h-auto print:overflow-visible">
+        <main className="global-report-content mx-auto max-w-7xl px-6 py-6">
           <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Global analysis</p>
@@ -303,7 +303,7 @@ export function GlobalReport() {
               </div>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[850px] text-left text-sm">
+              <table className="report-table w-full min-w-[850px] text-left text-sm">
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
                     <th className="px-5 py-3">Market</th>
