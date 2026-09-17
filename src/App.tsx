@@ -5,6 +5,7 @@ import { PresentationMode } from "./pages/PresentationMode";
 import { PlatformManager } from "./pages/PlatformManager";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import { TermsOfService } from "./pages/TermsOfService";
+import { GlobalReport } from "./pages/GlobalReport";
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<PresentationMode />} />
         <Route path="/map" element={<HomePage />} />
+        <Route path="/report" element={<GlobalReport />} />
         <Route path="/country/:id" element={<CountryDashboard />} />
         <Route path="/present" element={<PresentationMode />} />
         <Route path="/country/:id/present" element={<PresentationMode />} />
