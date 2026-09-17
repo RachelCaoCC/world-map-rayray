@@ -6,7 +6,8 @@ interface SummaryCardsProps {
 
 export function SummaryCards({ stats }: SummaryCardsProps) {
   const totalFollowers = stats.reduce((sum, s) => sum + s.followers, 0);
-  const totalViews = stats.reduce((sum, s) => sum + s.totalViews, 0);
+  const viewStats = stats.filter((s) => s.platform === "youtube" || s.platform === "tiktok");
+  const totalViews = viewStats.reduce((sum, s) => sum + s.totalViews, 0);
   const activeCount = stats.filter(s => s.accountCount > 0).length;
   const lastUpdated = stats[0]?.lastUpdated ?? "";
 
@@ -34,7 +35,14 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
   };
 
   const followerGrowth7d = weightedGrowth("followers", "followerGrowthPct30d");
-  const viewGrowth7d = weightedGrowth("totalViews", "viewGrowthPct30d");
+  const viewGrowth7d = (() => {
+    const total = viewStats.reduce((sum, stat) => sum + stat.totalViews, 0);
+    if (total <= 0) return 0;
+    return viewStats.reduce(
+      (sum, stat) => sum + stat.viewGrowthPct30d * stat.totalViews,
+      0,
+    ) / total;
+  })();
   const formatChange = (value: number) => `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`;
   const changeColor = (value: number) => value >= 0 ? "text-positive" : "text-red-500";
 
