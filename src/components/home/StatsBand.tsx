@@ -5,7 +5,7 @@ export function StatsBand() {
   const totalFollowersAll = useDashboardStore((s) => s.totalFollowersAll);
 
   const totalFollowers = totalFollowersAll();
-  const activeCount = countries.length;
+  const activeCount = countries.filter((country) => country.activePlatforms.length > 0).length;
   const lastSync = countries.reduce((latest, c) =>
     c.lastUpdated > latest ? c.lastUpdated : latest, countries[0]?.lastUpdated ?? ""
   );
@@ -53,16 +53,25 @@ export function StatsBand() {
   ];
 
   return (
-    <div className="grid grid-cols-3 gap-4 p-4">
+    <div className="relative overflow-hidden rounded-2xl border border-white/70 bg-white/92 p-3 shadow-xl backdrop-blur-md">
+      <div className="mb-2 flex items-center gap-2 px-2">
+        <span className="relative flex h-2.5 w-2.5">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+        </span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Realtime · Total World</span>
+      </div>
+      <div className="grid grid-cols-3 divide-x divide-slate-200">
       {stats.map((stat) => (
-        <div key={stat.label} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+        <div key={stat.label} className="min-w-0 px-3 py-2">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-lg flex items-center">{stat.icon}</span>
             <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">{stat.label}</span>
           </div>
-          <p className="text-sm font-semibold text-slate-800">{stat.value}</p>
+          <p className="truncate text-sm font-semibold text-slate-800">{stat.value}</p>
         </div>
       ))}
+      </div>
     </div>
   );
 }
