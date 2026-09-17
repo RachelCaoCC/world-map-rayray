@@ -12,6 +12,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/country/:id" element={<CountryDashboard />} />
+        <Route path="/present" element={<PresentationMode />} />
         <Route path="/country/:id/present" element={<PresentationMode />} />
         <Route path="/admin/platforms" element={<PlatformManager />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
