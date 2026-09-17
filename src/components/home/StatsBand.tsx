@@ -119,7 +119,7 @@ export function StatsBand() {
 
   return (
     <section className="overflow-hidden rounded-xl border border-slate-200 bg-white/95 shadow-lg backdrop-blur-sm">
-      <header className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+      <header className="flex items-center justify-between border-b border-slate-100 px-3 py-2 sm:px-4 sm:py-3">
         <h2 className="text-sm font-semibold text-slate-800">Real-time Overview</h2>
         <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
           <span className="h-2 w-2 rounded-full bg-emerald-400" />
@@ -127,15 +127,15 @@ export function StatsBand() {
         </span>
       </header>
 
-      <div className="divide-y divide-slate-100">
+      <div className="grid grid-cols-2 divide-x divide-y divide-slate-100 sm:block sm:divide-x-0">
         {rows.map((row) => (
-          <div key={row.label} className="flex items-center gap-3 px-4 py-3">
-            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${row.iconClass}`}>
+          <div key={row.label} className="flex min-w-0 items-center gap-2 px-2.5 py-2 sm:gap-3 sm:px-4 sm:py-3">
+            <span className={`hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg sm:flex ${row.iconClass}`}>
               {row.icon}
             </span>
             <div className="min-w-0">
-              <p className="text-xs text-slate-500">{row.label}</p>
-              <p className="truncate text-base font-bold text-slate-800">{row.value}</p>
+              <p className="truncate text-[10px] text-slate-500 sm:text-xs">{row.label}</p>
+              <p className="truncate text-sm font-bold text-slate-800 sm:text-base">{row.value}</p>
             </div>
           </div>
         ))}
