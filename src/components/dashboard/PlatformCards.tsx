@@ -20,7 +20,7 @@ export function PlatformCards({ stats, countryId }: PlatformCardsProps) {
   const changeColor = (value: number) => value >= 0 ? "text-positive" : "text-red-500";
 
   return (
-    <div className="grid grid-cols-4 gap-4 mb-6">
+    <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4">
       {stats.map((stat) => {
         const info = PLATFORM_INFO[stat.platform as PlatformKey];
         const connections = getConnectionsForCountryPlatform(countryId, stat.platform as PlatformKey);
@@ -51,7 +51,7 @@ export function PlatformCards({ stats, countryId }: PlatformCardsProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded-md text-slate-400 hover:text-accent hover:bg-slate-100 transition-colors opacity-0 group-hover:opacity-100"
+                className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-md text-slate-400 opacity-100 transition-colors hover:bg-slate-100 hover:text-accent sm:h-6 sm:w-6 sm:opacity-0 sm:group-hover:opacity-100"
                 title="Open profile"
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -112,7 +112,7 @@ export function PlatformCards({ stats, countryId }: PlatformCardsProps) {
               )}
             </div>
 
-            <div className="mt-3 text-xs text-accent font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="mt-3 text-xs font-medium text-accent opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
               View Presentation →
             </div>
           </div>
