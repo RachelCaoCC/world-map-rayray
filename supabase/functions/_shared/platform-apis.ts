@@ -313,7 +313,10 @@ export async function refreshFacebookToken(
     const data = await res.json();
     return {
       accessToken: data.access_token,
-      expiresAt: new Date(Date.now() + data.expires_in * 1000).toISOString(),
+      // Meta does not issue a separate refresh token. The newly extended
+      // access token becomes the credential for the next extension.
+      refreshToken: data.access_token,
+      expiresAt: new Date(Date.now() + Number(data.expires_in ?? 5184000) * 1000).toISOString(),
     };
   } catch {
     return null;
