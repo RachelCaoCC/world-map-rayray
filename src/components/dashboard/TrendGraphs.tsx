@@ -25,8 +25,12 @@ export function TrendGraphs({ trendData, activePlatforms }: TrendGraphsProps) {
     value.toString();
 
   const charts = [
-    { title: "Follower Trend", key: "followers" as const },
-    { title: "Views / Published Content Trend", key: "views" as const },
+    { title: "Follower Trend", key: "followers" as const, platforms: activePlatforms },
+    {
+      title: "Views Trend (YouTube / TikTok)",
+      key: "views" as const,
+      platforms: activePlatforms.filter((platform) => platform === "youtube" || platform === "tiktok"),
+    },
   ];
 
   return (
@@ -67,7 +71,7 @@ export function TrendGraphs({ trendData, activePlatforms }: TrendGraphsProps) {
                 formatter={(value) => [formatYAxis(Number(value))]}
               />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              {activePlatforms.map((p) => (
+              {chart.platforms.map((p) => (
                 <Line
                   key={p}
                   type="monotone"
