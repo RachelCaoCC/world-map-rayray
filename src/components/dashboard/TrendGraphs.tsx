@@ -34,10 +34,10 @@ export function TrendGraphs({ trendData, activePlatforms }: TrendGraphsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-4 mb-6">
+    <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
       {charts.map((chart) => (
-        <div key={chart.key} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
+        <div key={chart.key} className="min-w-0 rounded-xl border border-slate-100 bg-white p-3 shadow-sm sm:p-4">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-semibold text-slate-800">{chart.title}</h3>
             <div className="flex gap-1">
               {PERIODS.map((p) => (
