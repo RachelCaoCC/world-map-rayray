@@ -11,8 +11,8 @@ export function HomePage() {
       <div className="relative h-full p-4">
         <WorldMap />
 
-        {/* Compact global realtime summary positioned over the undeveloped Africa region */}
-        <div className="absolute left-1/2 top-[58%] z-10 w-[min(760px,calc(100%-3rem))] -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+        {/* Compact realtime world summary, matching the reference layout */}
+        <div className="absolute bottom-10 left-7 z-10 w-72 pointer-events-none">
           <StatsBand />
         </div>
       </div>
