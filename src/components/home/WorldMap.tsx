@@ -225,12 +225,6 @@ export function WorldMap() {
         />
       )}
 
-      {/* Global overlay text */}
-      {isGlobalView && (
-        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg px-4 py-2 shadow-sm">
-          <p className="text-sm font-medium text-slate-700">🌍 Global View — Select a country for details</p>
-        </div>
-      )}
     </div>
   );
 }
