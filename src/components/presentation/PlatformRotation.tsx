@@ -193,7 +193,7 @@ export function PlatformRotation() {
         </div>
 
         {/* Auto-refresh */}
-        <span className="text-white/30 text-sm">Auto refresh every 15 sec</span>
+        <span className="text-white/30 text-sm">Auto refresh every 10 sec</span>
 
         {/* Platform dots */}
         {showControls && (
