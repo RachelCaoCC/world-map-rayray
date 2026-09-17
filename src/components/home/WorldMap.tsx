@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
+import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from "react-simple-maps";
 import { useDashboardStore } from "../../store/useStore";
 import { HoverCard } from "./HoverCard";
 import type { Country } from "../../types";
@@ -45,6 +45,10 @@ export function WorldMap() {
   const [hoveredCountry, setHoveredCountry] = useState<Country | null>(null);
   const [hoveredPos, setHoveredPos] = useState({ x: 0, y: 0 });
   const [hoveredMarkerCountryId, setHoveredMarkerCountryId] = useState<string | null>(null);
+  const [mapPosition, setMapPosition] = useState<{ coordinates: [number, number]; zoom: number }>({
+    coordinates: [0, 0],
+    zoom: 1,
+  });
 
   const containerRef = useRef<HTMLDivElement>(null);
   const markerRefs = useRef<Map<string, SVGGElement>>(new Map());
@@ -111,6 +115,13 @@ export function WorldMap() {
         }}
         style={{ width: "100%", height: "100%" }}
       >
+        <ZoomableGroup
+          center={mapPosition.coordinates}
+          zoom={mapPosition.zoom}
+          minZoom={1}
+          maxZoom={6}
+          onMoveEnd={({ coordinates, zoom }) => setMapPosition({ coordinates, zoom })}
+        >
         <Geographies geography={GEO_URL}>
           {({ geographies }) =>
              geographies.map((geo) => {
@@ -207,7 +218,50 @@ export function WorldMap() {
             </Marker>
           );
         })}
+        </ZoomableGroup>
       </ComposableMap>
+
+      {/* Map zoom controls */}
+      <div
+        className="absolute top-4 right-4 z-20 flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          aria-label="Zoom in"
+          title="Zoom in"
+          onClick={() => setMapPosition((position) => ({
+            ...position,
+            zoom: Math.min(position.zoom * 1.5, 6),
+          }))}
+          className="flex h-10 w-10 items-center justify-center text-xl font-medium text-slate-700 hover:bg-slate-100"
+        >
+          +
+        </button>
+        <button
+          type="button"
+          aria-label="Zoom out"
+          title="Zoom out"
+          onClick={() => setMapPosition((position) => ({
+            ...position,
+            zoom: Math.max(position.zoom / 1.5, 1),
+          }))}
+          className="flex h-10 w-10 items-center justify-center border-t border-slate-200 text-xl font-medium text-slate-700 hover:bg-slate-100"
+        >
+          −
+        </button>
+        <button
+          type="button"
+          aria-label="Reset map"
+          title="Reset map"
+          onClick={() => setMapPosition({ coordinates: [0, 0], zoom: 1 })}
+          className="flex h-10 w-10 items-center justify-center border-t border-slate-200 text-slate-600 hover:bg-slate-100"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v6h6M20 20v-6h-6M5.1 15a8 8 0 0 0 13.2 2M18.9 9A8 8 0 0 0 5.7 7" />
+          </svg>
+        </button>
+      </div>
 
       {/* Global view helper */}
       {isGlobalView && (
