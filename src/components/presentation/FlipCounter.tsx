@@ -17,7 +17,7 @@ function OdometerDigit({ digit, large }: { digit: string; large?: boolean }) {
     >
       <div
         className="flip-digit-roll"
-        style={{ transform: `translateY(calc(-${n} * ${cellH}px))` }}
+        style={{ transform: `translateY(calc(-${n} * var(--cell-h)))` }}
       >
         {DIGITS.map((d) => (
           <div key={d} className="flip-digit-cell">{d}</div>
@@ -31,7 +31,7 @@ export function FlipCounter({ value, large }: FlipCounterProps) {
   const chars = useMemo(() => value.toLocaleString("en-US").split(""), [value]);
 
   return (
-    <div className="flex gap-1.5 items-center">
+    <div className="flip-counter flex max-w-full items-center justify-center gap-1.5">
       {chars.map((c, i) =>
         c === "," ? (
           <span key={`sep-${i}`} className="text-white/50 text-2xl mx-0.5 font-mono">,</span>
