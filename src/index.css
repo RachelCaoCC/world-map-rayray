@@ -187,3 +187,36 @@ html, body, #root {
     max-width: 100%;
   }
 }
+
+
+/* Mobile interaction and responsive map overlays */
+@media (max-width: 639px) {
+  .map-hover-card {
+    position: fixed !important;
+    left: 50% !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: 0.75rem !important;
+    width: calc(100vw - 1.5rem);
+    transform: translateX(-50%) !important;
+    animation: mobile-card-in 0.18s ease-out;
+  }
+
+  .map-hover-card > div {
+    width: 100%;
+  }
+
+  .hover-card-enter {
+    animation-name: mobile-card-in;
+  }
+
+  .recharts-wrapper,
+  .recharts-responsive-container {
+    max-width: 100%;
+  }
+}
+
+@keyframes mobile-card-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
