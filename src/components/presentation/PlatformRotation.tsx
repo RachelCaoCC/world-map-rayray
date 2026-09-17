@@ -82,7 +82,7 @@ export function PlatformRotation() {
   const goPrev = useCallback(() => goTo(-1), [goTo]);
 
   const exitPresentation = useCallback(() => {
-    navigate("/");
+    navigate("/map");
   }, [navigate]);
 
   // Keyboard controls: arrows + space to toggle autoplay, Escape to exit.
