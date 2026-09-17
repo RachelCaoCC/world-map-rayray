@@ -84,6 +84,26 @@ export function GlobalReport() {
   const largestPlatform = platformData[0];
   const manualFollowers = sourceData[1]?.value ?? 0;
   const manualShare = totalFollowers > 0 ? (manualFollowers / totalFollowers) * 100 : 0;
+  const topThreeFollowers = countryData.slice(0, 3).reduce((sum, market) => sum + market.followers, 0);
+  const topThreeShare = totalFollowers > 0 ? (topThreeFollowers / totalFollowers) * 100 : 0;
+  const usaMarket = countryData.find((market) => market.name.toLowerCase().includes("united states"));
+  const usaVsLeader = usaMarket && largestMarket?.followers
+    ? (usaMarket.followers / largestMarket.followers) * 100
+    : null;
+  const zombieAccounts = rows
+    .filter((row) => row.followers <= 10)
+    .sort((a, b) => a.followers - b.followers);
+  const zombieNames = zombieAccounts
+    .slice(0, 4)
+    .map((row) => `${row.countryName} ${PLATFORM_LABELS[row.platform] ?? row.platform} (${number(row.followers)})`)
+    .join(", ");
+  const manualPriorities = rows
+    .filter((row) => row.source === "Manual Snapshot")
+    .sort((a, b) => b.followers - a.followers)
+    .slice(0, 3);
+  const manualPriorityNames = manualPriorities
+    .map((row) => `${row.countryName} ${PLATFORM_LABELS[row.platform] ?? row.platform}`)
+    .join(", ");
 
   return (
     <Layout showBack backTo="/map">
@@ -130,21 +150,77 @@ export function GlobalReport() {
             ))}
           </section>
 
-          <section className="mb-6 rounded-xl border border-blue-100 bg-blue-50/70 p-5">
-            <h2 className="text-sm font-semibold text-blue-900">Executive analysis</h2>
-            <div className="mt-3 grid gap-3 text-sm text-slate-700 md:grid-cols-3">
-              <p>
-                <span className="font-semibold">{largestMarket?.name ?? "—"}</span> is the largest recorded market with{" "}
-                <span className="font-semibold">{number(largestMarket?.followers ?? 0)}</span> followers.
+          <section className="mb-6">
+            <div className="mb-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Core conclusions</p>
+              <h2 className="mt-1 text-xl font-bold text-slate-900">Executive Summary</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Conclusions recalculate automatically whenever API data or manual snapshots change.
               </p>
-              <p>
-                <span className="font-semibold">{largestPlatform?.name ?? "—"}</span> is the strongest platform with{" "}
-                <span className="font-semibold">{number(largestPlatform?.followers ?? 0)}</span> followers.
-              </p>
-              <p>
-                Manual snapshots represent <span className="font-semibold">{manualShare.toFixed(1)}%</span> of recorded followers.
-                Connect those accounts to replace snapshots with live data.
-              </p>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <article className="rounded-xl border border-slate-200 border-l-4 border-l-blue-500 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Coverage</p>
+                <h3 className="mt-1 font-semibold text-slate-900">Breadth established, depth remains uneven</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  <strong>{rows.length} accounts</strong> cover <strong>{platformData.length} platforms</strong> and{" "}
+                  <strong>{markets} markets</strong>. The top three markets hold{" "}
+                  <strong>{topThreeShare.toFixed(1)}%</strong> of all recorded followers, indicating
+                  {topThreeShare >= 70 ? " high concentration and a need to strengthen the long tail." : " a relatively balanced footprint with room to deepen smaller markets."}
+                </p>
+              </article>
+
+              <article className="rounded-xl border border-slate-200 border-l-4 border-l-rose-500 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-rose-600">Priority-market risk</p>
+                <h3 className="mt-1 font-semibold text-slate-900">United States requires focused investment</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {usaMarket ? (
+                    <>
+                      The United States records <strong>{number(usaMarket.followers)} followers</strong>, equal to{" "}
+                      <strong>{usaVsLeader?.toFixed(1)}%</strong> of the leading market, {largestMarket?.name}.
+                      {usaVsLeader !== null && usaVsLeader < 50
+                        ? " For a priority global market, this is a material coverage gap."
+                        : " Its relative position is healthy but should be monitored against market potential."}
+                    </>
+                  ) : (
+                    <>No United States account data is currently recorded. Add a connection or manual snapshot before evaluating this priority market.</>
+                  )}
+                </p>
+              </article>
+
+              <article className="rounded-xl border border-slate-200 border-l-4 border-l-emerald-500 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">Leaders</p>
+                <h3 className="mt-1 font-semibold text-slate-900">{largestMarket?.name ?? "—"} leads; {largestPlatform?.name ?? "—"} is the strongest platform</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  The leading market contributes <strong>{number(largestMarket?.followers ?? 0)}</strong> followers.
+                  Across the full portfolio, <strong>{largestPlatform?.name ?? "—"}</strong> contributes{" "}
+                  <strong>{number(largestPlatform?.followers ?? 0)}</strong>. These are the clearest benchmarks for content,
+                  investment and account operations in lower-performing markets.
+                </p>
+              </article>
+
+              <article className="rounded-xl border border-slate-200 border-l-4 border-l-amber-500 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-amber-600">Data and account risk</p>
+                <h3 className="mt-1 font-semibold text-slate-900">Low-scale accounts and manual-data dependency</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {zombieAccounts.length > 0 ? (
+                    <>There are <strong>{zombieAccounts.length} near-dormant accounts</strong> at 10 followers or fewer: {zombieNames}.</>
+                  ) : (
+                    <>No accounts currently fall below the 10-follower risk threshold.</>
+                  )}{" "}
+                  Manual snapshots represent <strong>{manualShare.toFixed(1)}%</strong> of followers and should be replaced with API connections where possible.
+                </p>
+              </article>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-violet-100 bg-violet-50/70 p-5">
+              <h3 className="text-sm font-semibold text-violet-900">Recommended next actions</h3>
+              <ol className="mt-3 grid gap-3 text-sm text-slate-700 md:grid-cols-3">
+                <li><strong>1.</strong> Connect the largest manual accounts first{manualPriorityNames ? `: ${manualPriorityNames}` : ""}.</li>
+                <li><strong>2.</strong> Review ownership, content cadence and purpose for all accounts below 10 followers.</li>
+                <li><strong>3.</strong> Use {largestMarket?.name ?? "the leading market"} and {largestPlatform?.name ?? "the leading platform"} as operating benchmarks.</li>
+              </ol>
             </div>
           </section>
 
