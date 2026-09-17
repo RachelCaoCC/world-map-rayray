@@ -67,11 +67,18 @@ function SyncIcon() {
 export function StatsBand() {
   const countries = useDashboardStore((state) => state.countries);
   const accountStats = useDashboardStore((state) => state.accountStats);
+  const platformConnections = useDashboardStore((state) => state.platformConnections);
   const totalFollowersAll = useDashboardStore((state) => state.totalFollowersAll);
 
   const totalFollowers = totalFollowersAll();
-  const totalViews = Array.from(accountStats.values()).reduce(
-    (sum, stats) => sum + stats.totalViews,
+  const viewConnectionIds = new Set(
+    platformConnections
+      .filter((connection) => connection.platform === "youtube" || connection.platform === "tiktok")
+      .map((connection) => connection.id),
+  );
+  const totalViews = Array.from(accountStats.entries()).reduce(
+    (sum, [connectionId, stats]) =>
+      sum + (viewConnectionIds.has(connectionId) ? stats.totalViews : 0),
     0,
   );
   const marketsTracked = countries.filter(
