@@ -24,11 +24,13 @@ export function PlatformCards({ stats, countryId }: PlatformCardsProps) {
         const info = PLATFORM_INFO[stat.platform as PlatformKey];
         const connections = getConnectionsForCountryPlatform(countryId, stat.platform as PlatformKey);
         const primaryConn = connections[0];
-        const secondaryLabel = stat.platform === "facebook"
-          ? "Published Posts"
-          : stat.platform === "instagram"
-            ? "Media Published"
-            : "Total Views";
+        const usesConnectionMetric = stat.platform === "facebook" || stat.platform === "instagram";
+        const secondaryLabel = usesConnectionMetric ? "Last Synced" : "Total Views";
+        const secondaryValue = usesConnectionMetric
+          ? (stat.lastUpdated
+              ? new Intl.DateTimeFormat("en-AU", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" }).format(new Date(stat.lastUpdated))
+              : "Pending")
+          : formatNum(stat.totalViews);
         const profileUrl = primaryConn
           ? getProfileUrl(stat.platform as PlatformKey, primaryConn.externalAccountId, primaryConn.accountName, primaryConn.username, primaryConn.profileUrl)
           : null;
@@ -85,11 +87,15 @@ export function PlatformCards({ stats, countryId }: PlatformCardsProps) {
               <div>
                 <p className="text-xs text-slate-500">{secondaryLabel}</p>
                 <div className="flex items-baseline gap-1">
-                  <p className="text-lg font-bold text-slate-800">{formatNum(stat.totalViews)}</p>
-                  <span className={`text-xs font-medium ${changeColor(stat.viewGrowthPct30d)}`}>{formatChange(stat.viewGrowthPct30d)}</span>
+                  <p className="text-lg font-bold text-slate-800">{secondaryValue}</p>
+                  {usesConnectionMetric ? (
+                    <span className="text-xs font-medium text-positive">● Connected</span>
+                  ) : (
+                    <span className={`text-xs font-medium ${changeColor(stat.viewGrowthPct30d)}`}>{formatChange(stat.viewGrowthPct30d)}</span>
+                  )}
                 </div>
               </div>
-              <p className="text-[11px] text-slate-400">vs. previous 7 days</p>
+              <p className="text-[11px] text-slate-400">{usesConnectionMetric ? `${stat.accountCount} connected account${stat.accountCount === 1 ? "" : "s"}` : "vs. previous 7 days"}</p>
             </div>
 
             <div className="mt-3 text-xs text-accent font-medium opacity-0 group-hover:opacity-100 transition-opacity">
