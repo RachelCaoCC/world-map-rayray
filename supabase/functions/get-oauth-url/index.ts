@@ -13,8 +13,8 @@ const OAUTH_URLS: Record<string, string> = {
 };
 
 const SCOPES: Record<string, string[]> = {
-  facebook: ["pages_show_list", "pages_read_engagement", "business_management"],
-  instagram: ["instagram_manage_insights", "instagram_basic"],
+  facebook: ["pages_show_list", "pages_read_engagement", "read_insights", "business_management"],
+  instagram: ["instagram_basic", "instagram_manage_insights", "pages_show_list", "pages_read_engagement", "read_insights"],
   youtube: ["https://www.googleapis.com/auth/youtube.readonly"],
   tiktok: ["user.info.basic", "user.info.stats","video.list", "user.info.profile"],
 };
