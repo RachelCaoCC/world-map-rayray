@@ -15,7 +15,7 @@ const PERIODS = [
 ] as const;
 
 export function TrendGraphs({ trendData, activePlatforms }: TrendGraphsProps) {
-  const [periodDays, setPeriodDays] = useState<90 | 30 | 7>(90);
+  const [periodDays, setPeriodDays] = useState<90 | 30 | 7>(7);
 
   const filteredData = trendData.slice(-periodDays);
 
