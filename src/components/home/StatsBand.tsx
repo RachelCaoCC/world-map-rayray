@@ -1,77 +1,138 @@
 import { useDashboardStore } from "../../store/useStore";
 
-export function StatsBand() {
-  const countries = useDashboardStore((s) => s.countries);
-  const totalFollowersAll = useDashboardStore((s) => s.totalFollowersAll);
+const formatNumber = (n: number) =>
+  n >= 1_000_000
+    ? `${(n / 1_000_000).toFixed(2)}M`
+    : n >= 1_000
+      ? n.toLocaleString("en-US")
+      : n.toString();
 
-  const totalFollowers = totalFollowersAll();
-  const activeCount = countries.length;
-  const lastSync = countries.reduce((latest, c) =>
-    c.lastUpdated > latest ? c.lastUpdated : latest, countries[0]?.lastUpdated ?? ""
+const formatTimestamp = (iso: string) => {
+  if (!iso) return "Waiting for sync";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+
+  return (
+    date.toLocaleDateString("en-US", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }) +
+    ", " +
+    date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    })
   );
+};
 
-  const formatFollowers = (n: number) =>
-    n >= 1_000_000 ? `${(n / 1_000_000).toFixed(2)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(0)}K` : n.toString();
-
-  const formatTimestamp = (iso: string) => {
-    try {
-      const d = new Date(iso);
-      return d.toLocaleDateString("en-US", {
-        day: "numeric", month: "short", year: "numeric",
-      }) + ", " + d.toLocaleTimeString("en-US", {
-        hour: "2-digit", minute: "2-digit", hour12: false,
-      }) + " (UTC+10)";
-    } catch {
-      return iso;
-    }
-  };
-
-  const MapIcon = () => (
-    <svg viewBox="0 0 24 24" className="w-5 h-5 text-accent" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 3 3 5v16l6-2 6 2 6-2V3l-6 2-6-2Z" />
-      <path d="M9 3v16M15 5v16" />
+function EyeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
+      <circle cx="12" cy="12" r="3" />
     </svg>
   );
-  const UsersIcon = () => (
-    <svg viewBox="0 0 24 24" className="w-5 h-5 text-accent" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+}
+
+function UsersIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2}>
       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
       <circle cx="9" cy="7" r="4" />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
     </svg>
   );
-  const SyncIcon = () => (
-    <svg viewBox="0 0 24 24" className="w-5 h-5 text-accent" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-6.7-3M3 12a9 9 0 0 1 9-9 9 9 0 0 1 6.7 3" />
+}
+
+function GlobeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" />
+    </svg>
+  );
+}
+
+function SyncIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M21 12a9 9 0 0 1-15.7 6M3 12a9 9 0 0 1 15.7-6" />
       <path d="M21 3v6h-6M3 21v-6h6" />
     </svg>
   );
+}
 
-  const stats = [
-    { label: "Active Countries/Regions", value: `${activeCount} countries`, icon: <MapIcon /> },
-    { label: "Total Followers", value: `${formatFollowers(totalFollowers)} across all markets`, icon: <UsersIcon /> },
-    { label: "Last Sync", value: formatTimestamp(lastSync), icon: <SyncIcon /> },
+export function StatsBand() {
+  const countries = useDashboardStore((state) => state.countries);
+  const accountStats = useDashboardStore((state) => state.accountStats);
+  const totalFollowersAll = useDashboardStore((state) => state.totalFollowersAll);
+
+  const totalFollowers = totalFollowersAll();
+  const totalViews = Array.from(accountStats.values()).reduce(
+    (sum, stats) => sum + stats.totalViews,
+    0,
+  );
+  const marketsTracked = countries.filter(
+    (country) => country.activePlatforms.length > 0,
+  ).length;
+  const lastSync = countries.reduce(
+    (latest, country) =>
+      country.lastUpdated > latest ? country.lastUpdated : latest,
+    countries[0]?.lastUpdated ?? "",
+  );
+
+  const rows = [
+    {
+      label: "Total Views",
+      value: formatNumber(totalViews),
+      icon: <EyeIcon />,
+      iconClass: "bg-blue-50 text-blue-500",
+    },
+    {
+      label: "Total Followers",
+      value: formatNumber(totalFollowers),
+      icon: <UsersIcon />,
+      iconClass: "bg-violet-50 text-violet-500",
+    },
+    {
+      label: "Markets Tracked",
+      value: marketsTracked.toString(),
+      icon: <GlobeIcon />,
+      iconClass: "bg-slate-100 text-slate-500",
+    },
+    {
+      label: "Last Sync",
+      value: formatTimestamp(lastSync),
+      icon: <SyncIcon />,
+      iconClass: "bg-emerald-50 text-emerald-500",
+    },
   ];
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/70 bg-white/92 p-3 shadow-xl backdrop-blur-md">
-      <div className="mb-2 flex items-center gap-2 px-2">
-        <span className="relative flex h-2.5 w-2.5">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white/95 shadow-lg backdrop-blur-sm">
+      <header className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+        <h2 className="text-sm font-semibold text-slate-800">Real-time Overview</h2>
+        <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+          <span className="h-2 w-2 rounded-full bg-emerald-400" />
+          Live
         </span>
-        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Realtime · Total World</span>
-      </div>
-      <div className="grid grid-cols-3 divide-x divide-slate-200">
-      {stats.map((stat) => (
-        <div key={stat.label} className="min-w-0 px-3 py-2">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-lg flex items-center">{stat.icon}</span>
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">{stat.label}</span>
+      </header>
+
+      <div className="divide-y divide-slate-100">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-center gap-3 px-4 py-3">
+            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${row.iconClass}`}>
+              {row.icon}
+            </span>
+            <div className="min-w-0">
+              <p className="text-xs text-slate-500">{row.label}</p>
+              <p className="truncate text-base font-bold text-slate-800">{row.value}</p>
+            </div>
           </div>
-          <p className="truncate text-sm font-semibold text-slate-800">{stat.value}</p>
-        </div>
-      ))}
+        ))}
       </div>
-    </div>
+    </section>
   );
 }
