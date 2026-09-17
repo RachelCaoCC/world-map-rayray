@@ -28,8 +28,8 @@ export function ComparisonTable({ stats }: ComparisonTableProps) {
       <div className="px-4 py-3 border-b border-slate-100">
         <h3 className="text-sm font-semibold text-slate-800">Platform Comparison</h3>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto overscroll-x-contain">
+        <table className="w-full min-w-[880px] text-sm">
           <thead>
             <tr className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
               <th className="text-left px-4 py-2.5">Platform</th>
