@@ -26,7 +26,7 @@ export function HoverCard({ country, position, onMouseEnter, onMouseLeave }: Hov
 
   return (
     <div
-      className="absolute z-50 pointer-events-auto hover-card-enter"
+      className="map-hover-card absolute z-50 pointer-events-auto hover-card-enter"
       style={{
         left: position.x,
         top: position.y - 10,
@@ -36,7 +36,7 @@ export function HoverCard({ country, position, onMouseEnter, onMouseLeave }: Hov
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      <div className="bg-white rounded-xl shadow-2xl border border-slate-200 p-4 w-64">
+      <div className="w-64 rounded-xl border border-slate-200 bg-white p-4 shadow-2xl">
         <div className="flex items-center gap-2 mb-3">
           <span className={`fi fi-${country.id} text-xl rounded shadow-sm`} />
           <div>
