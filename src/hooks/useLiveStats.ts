@@ -46,6 +46,10 @@ export function useLiveStats(countryId: string | null, intervalMs: number = 1500
   };
 
   useEffect(() => {
+    // Clear the previous country immediately so the UI falls back to its
+    // latest saved database snapshot while the live request is pending.
+    setPlatforms(new Map());
+    setIsLoading(true);
     fetchStats();
     intervalRef.current = setInterval(fetchStats, intervalMs);
     return () => {
