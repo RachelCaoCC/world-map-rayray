@@ -5,9 +5,46 @@ import type {
   AvailableAccount, TrendPoint,
 } from "../types";
 import { supabase } from "../lib/supabase";
+import { getManualSnapshots, getManualSupportedPlatforms } from "../data/manualSnapshots";
 
 const ALL_PLATFORMS: PlatformKey[] = ["facebook", "instagram", "youtube", "tiktok"];
 const FUNC_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
+
+function getCountryMetrics(
+  countryId: string,
+  connections: PlatformConnection[],
+  stats: Map<string, AccountStats>,
+) {
+  const connected = connections.filter(
+    (connection) => connection.countryId === countryId && connection.status === "connected",
+  );
+  const connectedPlatforms = new Set(connected.map((connection) => connection.platform));
+  const manualFallbacks = getManualSnapshots(countryId).filter(
+    (snapshot) => !connectedPlatforms.has(snapshot.platform as PlatformKey),
+  );
+  const activePlatforms = [...new Set([
+    ...connected.map((connection) => connection.platform),
+    ...getManualSupportedPlatforms(countryId).filter((platform) => !connectedPlatforms.has(platform)),
+  ])] as PlatformKey[];
+  const apiFollowers = connected.reduce(
+    (sum, connection) => sum + (stats.get(connection.id)?.followers ?? 0),
+    0,
+  );
+  const manualFollowers = manualFallbacks.reduce((sum, snapshot) => sum + snapshot.followers, 0);
+  const lastUpdated = connected.reduce(
+    (latest, connection) => connection.lastSyncedAt > latest ? connection.lastSyncedAt : latest,
+    "",
+  ) || manualFallbacks.reduce(
+    (latest, snapshot) => snapshot.capturedAt > latest ? snapshot.capturedAt : latest,
+    "",
+  );
+
+  return {
+    activePlatforms,
+    totalFollowers: apiFollowers + manualFollowers,
+    lastUpdated: lastUpdated || new Date().toISOString(),
+  };
+}
 
 interface DashboardState {
   // Country data
@@ -108,22 +145,14 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
           const conns = get().platformConnections;
           const stats = get().accountStats;
           const countries: Country[] = data.map((row: Record<string, unknown>) => {
-            const countryConns = conns.filter(c => c.countryId === row.id && c.status === "connected");
-            const activePlatforms = [...new Set(countryConns.map(c => c.platform))] as PlatformKey[];
-            const totalFollowers = countryConns.reduce((sum, c) => {
-              const s = stats.get(c.id);
-              return sum + (s?.followers ?? 0);
-            }, 0);
-            const lastUpdated = countryConns.reduce((latest, c) =>
-              c.lastSyncedAt > latest ? c.lastSyncedAt : latest, "");
+            const countryId = row.id as string;
+            const metrics = getCountryMetrics(countryId, conns, stats);
             return {
-              id: row.id as string,
+              id: countryId,
               name: row.name as string,
               region: row.region as Country["region"],
               flagCode: row.flag_code as string,
-              totalFollowers,
-              activePlatforms,
-              lastUpdated: lastUpdated || new Date().toISOString(),
+              ...metrics,
               lat: row.lat as number,
               lng: row.lng as number,
             };
@@ -150,22 +179,14 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     const conns = get().platformConnections;
     const stats = get().accountStats;
     const countries: Country[] = (data ?? []).map((row: Record<string, unknown>) => {
-      const countryConns = conns.filter(c => c.countryId === row.id && c.status === "connected");
-      const activePlatforms = [...new Set(countryConns.map(c => c.platform))] as PlatformKey[];
-      const totalFollowers = countryConns.reduce((sum, c) => {
-        const s = stats.get(c.id);
-        return sum + (s?.followers ?? 0);
-      }, 0);
-      const lastUpdated = countryConns.reduce((latest, c) =>
-        c.lastSyncedAt > latest ? c.lastSyncedAt : latest, "");
+      const countryId = row.id as string;
+      const metrics = getCountryMetrics(countryId, conns, stats);
       return {
-        id: row.id as string,
+        id: countryId,
         name: row.name as string,
         region: row.region as Country["region"],
         flagCode: row.flag_code as string,
-        totalFollowers,
-        activePlatforms,
-        lastUpdated: lastUpdated || new Date().toISOString(),
+        ...metrics,
         lat: row.lat as number,
         lng: row.lng as number,
       };
@@ -401,6 +422,24 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     );
 
     if (connections.length === 0) {
+      const manual = getManualSnapshots(countryId, platform);
+      if (manual.length > 0) {
+        return {
+          countryId,
+          platform,
+          accountCount: manual.length,
+          followers: manual.reduce((sum, snapshot) => sum + snapshot.followers, 0),
+          totalViews: 0,
+          followerGrowthPct30d: 0,
+          viewGrowthPct30d: 0,
+          lastUpdated: manual.reduce(
+            (latest, snapshot) => snapshot.capturedAt > latest ? snapshot.capturedAt : latest,
+            "",
+          ),
+          status: "Updated",
+        };
+      }
+
       return {
         countryId,
         platform,
