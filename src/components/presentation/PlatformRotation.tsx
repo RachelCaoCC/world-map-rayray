@@ -22,40 +22,52 @@ export function PlatformRotation() {
   const currentPlatformIndex = useDashboardStore((s) => s.currentPlatformIndex);
   const setCurrentPlatformIndex = useDashboardStore((s) => s.setCurrentPlatformIndex);
 
-  // Live stats from platform APIs
-  const { platforms: liveStats } = useLiveStats(id ?? null, POLL_MS);
+  const countries = useDashboardStore((s) => s.countries);
 
-  const country = getCountryById(id ?? "");
-  const activePlatforms = useMemo(
-    () => (country?.activePlatforms ?? []).filter(
-      (p) => (getAggregatedStats(id ?? "", p)?.accountCount ?? 0) > 0
-    ) as PlatformKey[],
-    [country?.id, country?.activePlatforms, getAggregatedStats]
-  );
+  // With no country in the URL, build one global carousel containing every
+  // connected country × platform combination.
+  const slides = useMemo(() => {
+    const scopedCountries = id
+      ? countries.filter((candidate) => candidate.id === id)
+      : countries;
 
-  // ?platform= is only a STARTING hint — the presentation always cycles
-  // through all active platforms for the country.
+    return scopedCountries.flatMap((candidate) =>
+      candidate.activePlatforms
+        .filter((platform) => (getAggregatedStats(candidate.id, platform)?.accountCount ?? 0) > 0)
+        .map((platform) => ({ countryId: candidate.id, platform }))
+    );
+  }, [countries, getAggregatedStats, id]);
+
+  // ?platform= is only a starting hint for country presentations.
   const startIdxRef = useRef<number | null>(null);
-  if (
-    startIdxRef.current === null &&
-    initialPlatform &&
-    activePlatforms.includes(initialPlatform)
-  ) {
-    startIdxRef.current = activePlatforms.indexOf(initialPlatform);
-    setCurrentPlatformIndex(startIdxRef.current);
+  if (startIdxRef.current === null && initialPlatform && id) {
+    const hintedIndex = slides.findIndex(
+      (slide) => slide.countryId === id && slide.platform === initialPlatform
+    );
+    if (hintedIndex >= 0) {
+      startIdxRef.current = hintedIndex;
+      setCurrentPlatformIndex(hintedIndex);
+    }
   }
 
-  const displayPlatforms = activePlatforms;
-  const activePlatform = displayPlatforms[currentPlatformIndex % displayPlatforms.length];
+  const displayPlatforms = slides.map((slide) => slide.platform);
+  const activeSlide = slides[currentPlatformIndex % Math.max(slides.length, 1)];
+  const country = activeSlide ? getCountryById(activeSlide.countryId) : undefined;
+  const activePlatform = activeSlide?.platform;
   const platformInfo = activePlatform ? PLATFORM_INFO[activePlatform] : null;
+
+  // Fetch live data for whichever country is currently on screen.
+  const { platforms: liveStats } = useLiveStats(activeSlide?.countryId ?? null, POLL_MS);
   const liveStat = activePlatform ? liveStats.get(activePlatform) : null;
   const platformStat = liveStat
     ? { followers: liveStat.followers, totalViews: liveStat.totalViews, accountCount: 1, status: "Updated" as const }
-    : id && activePlatform ? getAggregatedStats(id, activePlatform) : null;
+    : activeSlide
+      ? getAggregatedStats(activeSlide.countryId, activeSlide.platform)
+      : null;
 
   const { toggleRotation, isAutoPlaying } = usePlatformRotation(
-    id ?? null,
-    activePlatforms,
+    id ?? "global",
+    displayPlatforms,
     DWELL_MS
   );
 
@@ -70,8 +82,8 @@ export function PlatformRotation() {
   const goPrev = useCallback(() => goTo(-1), [goTo]);
 
   const exitPresentation = useCallback(() => {
-    navigate(id ? `/country/${id}` : "/");
-  }, [id, navigate]);
+    navigate("/");
+  }, [navigate]);
 
   // Keyboard controls: arrows + space to toggle autoplay, Escape to exit.
   useEffect(() => {
@@ -149,7 +161,7 @@ export function PlatformRotation() {
       {/* Main content */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={activePlatform}
+          key={`${country.id}-${activePlatform}`}
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
