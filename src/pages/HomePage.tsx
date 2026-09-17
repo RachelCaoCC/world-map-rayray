@@ -1,5 +1,4 @@
 import { Layout } from "../components/layout/Layout";
-import { CountryList } from "../components/home/CountryList";
 import { WorldMap } from "../components/home/WorldMap";
 import { StatsBand } from "../components/home/StatsBand";
 import { usePolling } from "../hooks/usePolling";
@@ -9,18 +8,11 @@ export function HomePage() {
 
   return (
     <Layout>
-      <div className="flex h-full overflow-auto">
-        {/* Sidebar */}
-        <CountryList />
+      <div className="relative h-full p-4">
+        <WorldMap />
 
-        {/* Main area */}
-        <div className="flex-1 flex flex-col">
-          {/* Map */}
-          <div className="flex-1 p-4">
-            <WorldMap />
-          </div>
-
-          {/* Bottom stats */}
+        {/* Compact global realtime summary positioned over the undeveloped Africa region */}
+        <div className="absolute left-1/2 top-[58%] z-10 w-[min(760px,calc(100%-3rem))] -translate-x-1/2 -translate-y-1/2 pointer-events-none">
           <StatsBand />
         </div>
       </div>
