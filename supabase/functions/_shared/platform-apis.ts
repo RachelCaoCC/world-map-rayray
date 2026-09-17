@@ -10,16 +10,15 @@ export interface PlatformStats {
 }
 
 // ─── Facebook Graph API ───
-// GET https://graph.facebook.com/v19.0/{page-id}?fields=followers_count,accessToken={token}
+// GET https://graph.facebook.com/v24.0/{page-id}?fields=followers_count,accessToken={token}
 
 export async function fetchFacebookStats(
   accessToken: string,
   pageId: string,
 ): Promise<PlatformStats | null> {
   try {
-    // Get follower count
     const url =
-      `https://graph.facebook.com/v19.0/${pageId}?fields=followers_count,fan_count&access_token=${accessToken}`;
+      `https://graph.facebook.com/v24.0/${pageId}?fields=followers_count,fan_count,name&access_token=${accessToken}`;
     const res = await fetch(url);
     const text = await res.text();
     let data: Record<string, unknown>;
@@ -32,27 +31,42 @@ export async function fetchFacebookStats(
       return { followers: 0, totalViews: 0, error: `Facebook API: ${msg}` };
     }
 
-    // Get page views from Insights API
+    // Facebook has no account-level lifetime views field. Sum every accessible
+    // published Page video, following every pagination cursor.
     let totalViews = 0;
-    try {
-      const insightsRes = await fetch(
-        `https://graph.facebook.com/v19.0/${pageId}/insights?metric=post_video_views&period=lifetime&access_token=${accessToken}`,
-      );
-      if (insightsRes.ok) {
-        const insightsText = await insightsRes.text();
-        const insightsData = JSON.parse(insightsText);
-        const views = insightsData.data?.find((d: { name: string }) => d.name === "post_video_views");
-        if (views?.values?.[0]?.value) {
-          totalViews = views.values[0].value;
-        }
+    let nextUrl: string | null =
+      `https://graph.facebook.com/v24.0/${pageId}/published_videos?fields=id,views&limit=100&access_token=${accessToken}`;
+    let fetchedAnyPage = false;
+    let firstInsightsError = "";
+
+    while (nextUrl) {
+      const videosRes = await fetch(nextUrl);
+      const videosText = await videosRes.text();
+      let videosData: Record<string, unknown>;
+      try { videosData = JSON.parse(videosText); } catch {
+        firstInsightsError ||= videosText.substring(0, 200);
+        break;
       }
-    } catch {
-      // Insights may require additional permissions
+      if (!videosRes.ok || videosData.error) {
+        const errObj = videosData.error as Record<string, string> | undefined;
+        firstInsightsError ||= errObj?.message ?? `HTTP ${videosRes.status}`;
+        break;
+      }
+
+      fetchedAnyPage = true;
+      const videos = (videosData.data as Array<{ views?: number }> | undefined) ?? [];
+      totalViews += videos.reduce((sum, video) => sum + Number(video.views ?? 0), 0);
+      const paging = videosData.paging as { next?: string } | undefined;
+      nextUrl = paging?.next ?? null;
     }
 
     return {
-      followers: (data.followers_count as number) ?? (data.fan_count as number) ?? 0,
+      followers: Number(data.followers_count ?? data.fan_count ?? 0),
       totalViews,
+      accountName: String(data.name ?? ""),
+      ...(!fetchedAnyPage && firstInsightsError
+        ? { error: `Facebook video views unavailable: ${firstInsightsError}` }
+        : {}),
     };
   } catch (err) {
     return { followers: 0, totalViews: 0, error: `Facebook fetch failed: ${String(err)}` };
@@ -60,7 +74,7 @@ export async function fetchFacebookStats(
 }
 
 // ─── Instagram Graph API ───
-// GET https://graph.facebook.com/v19.0/{ig-user-id}?fields=followers_count,media_count&access_token={token}
+// GET https://graph.facebook.com/v24.0/{ig-user-id}?fields=followers_count,media_count&access_token={token}
 // Requires instagram_basic and instagram_manage_insights scopes
 
 export async function fetchInstagramStats(
@@ -69,7 +83,7 @@ export async function fetchInstagramStats(
 ): Promise<PlatformStats | null> {
   try {
     const url =
-      `https://graph.facebook.com/v19.0/${igUserId}?fields=followers_count,media_count,name,username&access_token=${accessToken}`;
+      `https://graph.facebook.com/v24.0/${igUserId}?fields=followers_count,media_count,name,username&access_token=${accessToken}`;
     const res = await fetch(url);
     const text = await res.text();
     let data: Record<string, unknown>;
@@ -82,45 +96,86 @@ export async function fetchInstagramStats(
       return { followers: 0, totalViews: 0, error: `Instagram API: ${msg}` };
     }
 
-    // Get total views by summing individual media view counts
+    // Instagram has no account-level lifetime view count. Page through every
+    // accessible media object and add its lifetime views. "views" is the
+    // current unified metric; older video/Reel objects may only expose plays
+    // or video_views, so those are queried as fallbacks one at a time.
     let totalViews = 0;
-    try {
-      // Get all media IDs
-      const mediaRes = await fetch(
-        `https://graph.facebook.com/v19.0/${igUserId}/media?fields=id,media_type&limit=100&access_token=${accessToken}`,
-      );
-      if (mediaRes.ok) {
-        const mediaText = await mediaRes.text();
-        const mediaData = JSON.parse(mediaText);
-        const mediaIds = (mediaData.data ?? []).map((m: { id: string }) => m.id);
+    let mediaUrl: string | null =
+      `https://graph.facebook.com/v24.0/${igUserId}/media?fields=id,media_type&limit=100&access_token=${accessToken}`;
+    let mediaCount = 0;
+    let readableMediaCount = 0;
+    let firstInsightsError = "";
 
-        // Get view counts for each media (batch of 50 at a time)
-        for (let i = 0; i < mediaIds.length; i += 50) {
-          const batch = mediaIds.slice(i, i + 50);
-          const idsParam = batch.join(",");
-          const insightsRes = await fetch(
-            `https://graph.facebook.com/v19.0/?ids=${idsParam}&fields=insights.metric(video_views,plays)&access_token=${accessToken}`,
-          );
-          if (insightsRes.ok) {
-            const insightsText = await insightsRes.text();
-            const insightsData = JSON.parse(insightsText);
-            for (const mediaId of batch) {
-              const mediaInsights = insightsData[mediaId]?.insights?.data ?? [];
-              const views = mediaInsights.find((d: { name: string }) => d.name === "video_views" || d.name === "plays");
-              if (views?.values?.[0]?.value) {
-                totalViews += views.values[0].value;
-              }
+    while (mediaUrl) {
+      const mediaRes = await fetch(mediaUrl);
+      const mediaText = await mediaRes.text();
+      let mediaData: Record<string, unknown>;
+      try { mediaData = JSON.parse(mediaText); } catch {
+        firstInsightsError ||= mediaText.substring(0, 200);
+        break;
+      }
+      if (!mediaRes.ok || mediaData.error) {
+        const errObj = mediaData.error as Record<string, string> | undefined;
+        firstInsightsError ||= errObj?.message ?? `HTTP ${mediaRes.status}`;
+        break;
+      }
+
+      const media = (mediaData.data as Array<{ id: string }> | undefined) ?? [];
+      mediaCount += media.length;
+
+      // A small concurrency window avoids Meta rate-limit spikes on large accounts.
+      for (let i = 0; i < media.length; i += 10) {
+        const chunk = media.slice(i, i + 10);
+        const results = await Promise.all(chunk.map(async ({ id }) => {
+          const metrics = ["views", "plays", "video_views"];
+          let lastError = "";
+          for (const metric of metrics) {
+            const insightRes = await fetch(
+              `https://graph.facebook.com/v24.0/${id}/insights?metric=${metric}&access_token=${accessToken}`,
+            );
+            const insightText = await insightRes.text();
+            let insightData: Record<string, unknown>;
+            try { insightData = JSON.parse(insightText); } catch {
+              lastError = insightText.substring(0, 200);
+              continue;
             }
+            if (!insightRes.ok || insightData.error) {
+              const errObj = insightData.error as Record<string, string> | undefined;
+              lastError = errObj?.message ?? `HTTP ${insightRes.status}`;
+              continue;
+            }
+            const rows = (insightData.data as Array<{
+              values?: Array<{ value?: number }>;
+              total_value?: { value?: number };
+            }> | undefined) ?? [];
+            const value = Number(rows[0]?.total_value?.value ?? rows[0]?.values?.[0]?.value ?? 0);
+            return { readable: true, value };
+          }
+          return { readable: false, value: 0, error: lastError };
+        }));
+
+        for (const result of results) {
+          if (result.readable) {
+            readableMediaCount += 1;
+            totalViews += result.value;
+          } else if (result.error) {
+            firstInsightsError ||= result.error;
           }
         }
       }
-    } catch {
-      // Insights may not be available for all accounts
+
+      const paging = mediaData.paging as { next?: string } | undefined;
+      mediaUrl = paging?.next ?? null;
     }
 
     return {
-      followers: (data.followers_count as number) ?? 0,
+      followers: Number(data.followers_count ?? 0),
       totalViews,
+      accountName: String(data.username ?? data.name ?? ""),
+      ...(mediaCount > 0 && readableMediaCount === 0
+        ? { error: `Instagram views unavailable. Check Professional Account and instagram_manage_insights permission. ${firstInsightsError}` }
+        : {}),
     };
   } catch (err) {
     return { followers: 0, totalViews: 0, error: `Instagram fetch failed: ${String(err)}` };
@@ -252,7 +307,7 @@ export async function refreshFacebookToken(
 ): Promise<TokenRefreshResult | null> {
   try {
     const url =
-      `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${refreshToken}`;
+      `https://graph.facebook.com/v24.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${refreshToken}`;
     const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json();
