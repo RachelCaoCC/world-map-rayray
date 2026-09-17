@@ -24,6 +24,11 @@ export function PlatformCards({ stats, countryId }: PlatformCardsProps) {
         const info = PLATFORM_INFO[stat.platform as PlatformKey];
         const connections = getConnectionsForCountryPlatform(countryId, stat.platform as PlatformKey);
         const primaryConn = connections[0];
+        const secondaryLabel = stat.platform === "facebook"
+          ? "Published Posts"
+          : stat.platform === "instagram"
+            ? "Media Published"
+            : "Total Views";
         const profileUrl = primaryConn
           ? getProfileUrl(stat.platform as PlatformKey, primaryConn.externalAccountId, primaryConn.accountName, primaryConn.username, primaryConn.profileUrl)
           : null;
@@ -78,7 +83,7 @@ export function PlatformCards({ stats, countryId }: PlatformCardsProps) {
                 </div>
               </div>
               <div>
-                <p className="text-xs text-slate-500">Total Views</p>
+                <p className="text-xs text-slate-500">{secondaryLabel}</p>
                 <div className="flex items-baseline gap-1">
                   <p className="text-lg font-bold text-slate-800">{formatNum(stat.totalViews)}</p>
                   <span className={`text-xs font-medium ${changeColor(stat.viewGrowthPct30d)}`}>{formatChange(stat.viewGrowthPct30d)}</span>
