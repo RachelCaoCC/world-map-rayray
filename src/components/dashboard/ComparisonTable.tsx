@@ -35,9 +35,9 @@ export function ComparisonTable({ stats }: ComparisonTableProps) {
               <th className="text-left px-4 py-2.5">Platform</th>
               <th className="text-left px-4 py-2.5">Account Name</th>
               <th className="text-right px-4 py-2.5">Followers</th>
-              <th className="text-right px-4 py-2.5">Total Views</th>
+              <th className="text-right px-4 py-2.5">Views / Published Content</th>
               <th className="text-right px-4 py-2.5">Follower Growth (7D)</th>
-              <th className="text-right px-4 py-2.5">View Growth (7D)</th>
+              <th className="text-right px-4 py-2.5">Metric Growth (7D)</th>
               <th className="text-right px-4 py-2.5">Last Updated</th>
               <th className="text-center px-4 py-2.5">Status</th>
             </tr>
