@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDashboardStore } from "../../store/useStore";
 import { FlipCounter } from "./FlipCounter";
@@ -13,6 +13,7 @@ const POLL_MS = 15000;
 
 export function PlatformRotation() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialPlatform = searchParams.get("platform") as PlatformKey | null;
 
@@ -68,16 +69,21 @@ export function PlatformRotation() {
   const goNext = useCallback(() => goTo(1), [goTo]);
   const goPrev = useCallback(() => goTo(-1), [goTo]);
 
-  // Keyboard controls: arrows + space to toggle autoplay.
+  const exitPresentation = useCallback(() => {
+    navigate(id ? `/country/${id}` : "/");
+  }, [id, navigate]);
+
+  // Keyboard controls: arrows + space to toggle autoplay, Escape to exit.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") goNext();
+      if (e.key === "Escape") exitPresentation();
+      else if (e.key === "ArrowRight") goNext();
       else if (e.key === "ArrowLeft") goPrev();
       else if (e.key === " ") { e.preventDefault(); toggleRotation(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [goNext, goPrev, toggleRotation]);
+  }, [exitPresentation, goNext, goPrev, toggleRotation]);
 
   // Clock
   const [time, setTime] = useState(new Date());
@@ -118,9 +124,26 @@ export function PlatformRotation() {
         <span className="text-white/60 text-sm font-medium">Count</span>
       </div>
 
-      {/* Time top-right */}
-      <div className="absolute top-6 right-8 text-white/40 text-sm font-mono">
-        {time.toLocaleTimeString("en-US", { hour12: false })}
+      {/* Time and exit top-right */}
+      <div
+        className="absolute top-5 right-8 z-30 flex items-center gap-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span className="text-white/40 text-sm font-mono">
+          {time.toLocaleTimeString("en-US", { hour12: false })}
+        </span>
+        <button
+          type="button"
+          onClick={exitPresentation}
+          aria-label="Exit presentation mode"
+          title="Exit presentation mode (Esc)"
+          className="flex items-center gap-2 rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/20 hover:text-white"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+          Exit
+        </button>
       </div>
 
       {/* Main content */}
@@ -220,7 +243,7 @@ export function PlatformRotation() {
       {/* Hint */}
       {showControls && (
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2 text-white/20 text-xs">
-          ← → to cycle · space to pause · click to advance
+          ← → to cycle · space to pause · Esc to exit · click to advance
         </div>
       )}
     </div>
