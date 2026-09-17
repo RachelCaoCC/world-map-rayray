@@ -58,7 +58,7 @@ interface DashboardState {
 
   // ─── Actions — multi-account connection ───
   getAvailableAccounts: (countryId: string, platform: PlatformKey) => AvailableAccount[];
-  connectAccount: (countryId: string, platform: PlatformKey, account: AvailableAccount, accessToken: string, refreshToken?: string) => Promise<string>;
+  connectAccount: (countryId: string, platform: PlatformKey, account: AvailableAccount, accessToken: string, refreshToken?: string, expiresIn?: number) => Promise<string>;
   disconnectAccount: (connectionId: string) => Promise<void>;
   reconnectAccount: (connectionId: string) => Promise<void>;
   triggerAccountSync: (connectionId: string) => Promise<void>;
@@ -306,7 +306,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     return [];
   },
 
-  connectAccount: async (countryId, platform, account, accessToken, refreshToken) => {
+  connectAccount: async (countryId, platform, account, accessToken, refreshToken, expiresIn) => {
     const res = await fetch(`${FUNC_URL}/connect-account`, {
       method: "POST",
       headers: {
@@ -322,6 +322,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         profileUrl: account.profileUrl,
         accessToken,
         refreshToken,
+        expiresIn,
       }),
     });
     const data = await res.json();
