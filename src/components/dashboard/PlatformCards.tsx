@@ -15,6 +15,9 @@ export function PlatformCards({ stats, countryId }: PlatformCardsProps) {
   const formatNum = (n: number) =>
     n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(0)}K` : n.toString();
 
+  const formatChange = (value: number) => `${value >= 0 ? "+" : ""}${value}%`;
+  const changeColor = (value: number) => value >= 0 ? "text-positive" : "text-red-500";
+
   return (
     <div className="grid grid-cols-4 gap-4 mb-6">
       {stats.map((stat) => {
@@ -71,16 +74,17 @@ export function PlatformCards({ stats, countryId }: PlatformCardsProps) {
                 <p className="text-xs text-slate-500">Followers / Subscribers</p>
                 <div className="flex items-baseline gap-1">
                   <p className="text-lg font-bold text-slate-800">{formatNum(stat.followers)}</p>
-                  <span className="text-xs text-positive font-medium">+{stat.followerGrowthPct30d}%</span>
+                  <span className={`text-xs font-medium ${changeColor(stat.followerGrowthPct30d)}`}>{formatChange(stat.followerGrowthPct30d)}</span>
                 </div>
               </div>
               <div>
                 <p className="text-xs text-slate-500">Total Views</p>
                 <div className="flex items-baseline gap-1">
                   <p className="text-lg font-bold text-slate-800">{formatNum(stat.totalViews)}</p>
-                  <span className="text-xs text-positive font-medium">+{stat.viewGrowthPct30d}%</span>
+                  <span className={`text-xs font-medium ${changeColor(stat.viewGrowthPct30d)}`}>{formatChange(stat.viewGrowthPct30d)}</span>
                 </div>
               </div>
+              <p className="text-[11px] text-slate-400">vs. previous 7 days</p>
             </div>
 
             <div className="mt-3 text-xs text-accent font-medium opacity-0 group-hover:opacity-100 transition-opacity">
