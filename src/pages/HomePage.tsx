@@ -8,11 +8,11 @@ export function HomePage() {
 
   return (
     <Layout>
-      <div className="relative h-full p-4">
+      <div className="relative h-full p-2 sm:p-4">
         <WorldMap />
 
         {/* Compact realtime world summary, matching the reference layout */}
-        <div className="absolute bottom-10 left-7 z-10 w-72 pointer-events-none">
+        <div className="pointer-events-none absolute bottom-3 left-3 z-10 w-[calc(100%-1.5rem)] max-w-72 sm:bottom-10 sm:left-7">
           <StatsBand />
         </div>
       </div>
