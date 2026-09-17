@@ -18,7 +18,7 @@ export async function fetchFacebookStats(
 ): Promise<PlatformStats | null> {
   try {
     const url =
-      `https://graph.facebook.com/v24.0/${pageId}?fields=followers_count,fan_count,name&access_token=${accessToken}`;
+      `https://graph.facebook.com/v24.0/${pageId}?fields=followers_count,fan_count,talking_about_count,name&access_token=${accessToken}`;
     const res = await fetch(url);
     const text = await res.text();
     let data: Record<string, unknown>;
@@ -31,20 +31,14 @@ export async function fetchFacebookStats(
       return { followers: 0, totalViews: 0, error: `Facebook API: ${msg}` };
     }
 
-    // Store published content count in totalViews for schema compatibility.
-    // The frontend labels this value as Published Posts, never as views.
-    let publishedPosts = 0;
-    const postsRes = await fetch(
-      `https://graph.facebook.com/v24.0/${pageId}/published_posts?fields=id&limit=1&summary=true&access_token=${accessToken}`,
-    );
-    if (postsRes.ok) {
-      const postsData = await postsRes.json();
-      publishedPosts = Number(postsData.summary?.total_count ?? 0);
-    }
+    // Page Activity is available directly from the Page object and does not
+    // require crawling every post. Keep it in totalViews for the existing
+    // analytics schema; the UI labels Facebook's field accurately.
+    const pageActivity = Number(data.talking_about_count ?? 0);
 
     return {
       followers: Number(data.followers_count ?? data.fan_count ?? 0),
-      totalViews: publishedPosts,
+      totalViews: pageActivity,
       accountName: String(data.name ?? ""),
     };
   } catch (err) {
