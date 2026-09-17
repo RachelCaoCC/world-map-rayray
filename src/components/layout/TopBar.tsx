@@ -34,6 +34,20 @@ export function TopBar({ showBack, backTo }: { showBack?: boolean; backTo?: stri
       </div>
 
       <div className="flex items-center gap-4">
+        {isHome && (
+          <Link
+            to="/present"
+            className="text-white/70 hover:text-white transition-colors"
+            title="Start global live presentation"
+            aria-label="Start global live presentation"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M4 19V9m5 10V5m5 14v-7m5 7V3" />
+            </svg>
+          </Link>
+        )}
+
         <Link
           to="/admin/platforms"
           className="text-white/70 hover:text-white transition-colors"
