@@ -75,7 +75,6 @@ export function WorldMap() {
   const containerRef = useRef<HTMLDivElement>(null);
   const markerRefs = useRef<Map<string, SVGGElement>>(new Map());
   const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const markerClickedRef = useRef(false);
   const zoomFrameRef = useRef<number | null>(null);
 
   const animateZoom = useCallback((targetZoom: number, targetCoordinates = mapPosition.coordinates) => {
@@ -140,13 +139,11 @@ export function WorldMap() {
 
 
   const closeView = useCallback(() => {
-    if (markerClickedRef.current) {
-      markerClickedRef.current = false;
-      return;
-    }
+    if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
     setSelectedCountry(null);
     setHoveredCountry(null);
-  }, [setSelectedCountry, setHoveredCountry]);
+    setHoveredMarkerCountryId(null);
+  }, [setSelectedCountry]);
 
   return (
     <div
@@ -219,14 +216,13 @@ export function WorldMap() {
             <Marker
               key={country.id}
               coordinates={[country.lng, country.lat]}
-              onClick={() => {
-                markerClickedRef.current = true;
+              onClick={(event) => {
+                event.stopPropagation();
                 setSelectedCountry(country.id);
                 if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
                 setHoveredCountry(country);
               }}
               onMouseEnter={() => {
-                markerClickedRef.current = true;
                 if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
                 setHoveredMarkerCountryId(country.id);
                 if (country.id === selectedCountryId) {
