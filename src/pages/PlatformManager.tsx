@@ -45,7 +45,7 @@ export function PlatformManager() {
   const [wizardAccounts, setWizardAccounts] = useState<AvailableAccount[]>([]);
   const [wizardSelectedAccount, setWizardSelectedAccount] = useState<AvailableAccount | null>(null);
   const [wizardConnecting, setWizardConnecting] = useState(false);
-  const [wizardTokens, setWizardTokens] = useState<{ accessToken: string; refreshToken?: string } | null>(null);
+  const [wizardTokens, setWizardTokens] = useState<{ accessToken: string; refreshToken?: string; expiresIn?: number } | null>(null);
   const [wizardError, setWizardError] = useState<string | null>(null);
 
   // Disconnect confirm
@@ -83,6 +83,7 @@ export function PlatformManager() {
         setWizardTokens({
           accessToken: data.accessToken,
           refreshToken: data.refreshToken ?? undefined,
+          expiresIn: data.expiresIn ? Number(data.expiresIn) : undefined,
         });
         setWizardAccounts(
           data.accounts.map((a: { id: string; name: string; username?: string; profileUrl?: string; type: string }) => ({
@@ -255,6 +256,7 @@ export function PlatformManager() {
         wizardSelectedAccount,
         wizardTokens.accessToken,
         wizardTokens.refreshToken,
+        wizardTokens.expiresIn,
       );
       setWizardOpen(false);
     } catch (err) {
