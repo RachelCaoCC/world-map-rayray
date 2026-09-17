@@ -96,3 +96,94 @@ html, body, #root {
   background: #cbd5e1;
   border-radius: 2px;
 }
+
+
+/* Full-document Global Report printing */
+@page {
+  size: A4 landscape;
+  margin: 10mm;
+}
+
+@media print {
+  html,
+  body,
+  #root {
+    width: 100%;
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  #root > div {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  #root > div > header,
+  #root > div > footer {
+    display: none !important;
+  }
+
+  #root > div > main,
+  .global-report-print,
+  .global-report-content {
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .global-report-content {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .global-report-print section,
+  .global-report-print article,
+  .global-report-print .recharts-wrapper,
+  .global-report-print .recharts-responsive-container {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .global-report-print table {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed;
+    font-size: 9px;
+  }
+
+  .global-report-print thead {
+    display: table-header-group;
+  }
+
+  .global-report-print tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .global-report-print th,
+  .global-report-print td {
+    padding: 5px 7px !important;
+    overflow-wrap: anywhere;
+  }
+
+  .global-report-print th:nth-child(1) { width: 16%; }
+  .global-report-print th:nth-child(2) { width: 11%; }
+  .global-report-print th:nth-child(3) { width: 22%; }
+  .global-report-print th:nth-child(4) { width: 12%; }
+  .global-report-print th:nth-child(5) { width: 18%; }
+  .global-report-print th:nth-child(6) { width: 21%; }
+
+  .global-report-print svg {
+    max-width: 100%;
+  }
+}
