@@ -106,7 +106,7 @@ export function PlatformRotation() {
 
   if (!country || !platformInfo || !platformStat) {
     return (
-      <div className="h-screen bg-slate-900 flex items-center justify-center">
+      <div className="flex h-[100dvh] min-h-[100dvh] items-center justify-center bg-slate-900">
         <p className="text-white/50 text-lg">Loading...</p>
       </div>
     );
@@ -117,7 +117,7 @@ export function PlatformRotation() {
 
   return (
     <div
-      className="h-screen bg-slate-900 flex flex-col items-center justify-center relative overflow-hidden select-none"
+      className="presentation-screen relative flex h-[100dvh] min-h-[100dvh] flex-col items-center justify-center overflow-hidden bg-slate-900 select-none"
       onClick={showControls ? goNext : undefined}
     >
       {/* Background subtle pattern */}
@@ -129,7 +129,7 @@ export function PlatformRotation() {
       </div>
 
       {/* Branding top-left */}
-      <div className="absolute top-6 left-8 flex items-center gap-2">
+      <div className="presentation-brand absolute left-8 top-6 z-30 flex items-center gap-2">
         <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
           <span className="text-white font-bold text-sm">C</span>
         </div>
@@ -138,7 +138,7 @@ export function PlatformRotation() {
 
       {/* Time and exit top-right */}
       <div
-        className="absolute top-5 right-8 z-30 flex items-center gap-4"
+        className="presentation-actions absolute right-8 top-5 z-30 flex items-center gap-4"
         onClick={(e) => e.stopPropagation()}
       >
         <span className="text-white/40 text-sm font-mono">
@@ -166,18 +166,18 @@ export function PlatformRotation() {
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.5 }}
-          className="flex flex-col items-center gap-6 relative z-10"
+          className="presentation-main relative z-10 flex w-full flex-col items-center gap-6 px-4"
         >
           {/* Platform logo */}
-          <div className="w-24 h-24 rounded-2xl overflow-hidden flex items-center justify-center bg-transparent">
-            <img src={platformInfo.logo} alt={platformInfo.name} className="w-20 h-20 object-contain" />
+          <div className="presentation-logo flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl bg-transparent">
+            <img src={platformInfo.logo} alt={platformInfo.name} className="h-20 w-20 object-contain" />
           </div>
 
           {/* Platform name */}
-          <h1 className="text-white text-4xl font-bold tracking-tight">{platformInfo.name}</h1>
+          <h1 className="presentation-title text-4xl font-bold tracking-tight text-white">{platformInfo.name}</h1>
 
           {/* Metric label */}
-          <p className="text-white/50 text-lg uppercase tracking-widest">{metricLabel}</p>
+          <p className="presentation-metric text-lg uppercase tracking-widest text-white/50">{metricLabel}</p>
 
           {/* Mechanical flip counter */}
           <FlipCounter value={liveStat?.followers ?? platformStat?.followers ?? 0} large />
@@ -185,7 +185,7 @@ export function PlatformRotation() {
       </AnimatePresence>
 
       {/* Bottom indicators */}
-      <div className="absolute bottom-6 left-0 right-0 flex items-center justify-center gap-6">
+      <div className="presentation-meta absolute bottom-6 left-0 right-0 z-20 flex items-center justify-center gap-6">
         {/* Live indicator */}
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-positive animate-pulse" />
@@ -193,11 +193,11 @@ export function PlatformRotation() {
         </div>
 
         {/* Auto-refresh */}
-        <span className="text-white/30 text-sm">Auto refresh every 10 sec</span>
+        <span className="presentation-refresh whitespace-nowrap text-sm text-white/30">Auto refresh every 10 sec</span>
 
         {/* Platform dots */}
         {showControls && (
-          <div className="flex gap-2">
+          <div className="presentation-dots flex max-w-[48vw] gap-2 overflow-hidden">
             {displayPlatforms.map((p, i) => (
               <span
                 key={p}
@@ -210,12 +210,17 @@ export function PlatformRotation() {
             ))}
           </div>
         )}
+        {showControls && (
+          <span className="presentation-slide-count hidden rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-white/60">
+            {(currentPlatformIndex % displayPlatforms.length) + 1} / {displayPlatforms.length}
+          </span>
+        )}
       </div>
 
       {/* Control bar (manual cycle) */}
       {showControls && (
         <div
-          className="absolute bottom-6 right-8 flex items-center gap-2 z-20"
+          className="presentation-controls absolute bottom-6 right-8 z-20 flex items-center gap-2"
           onClick={(e) => e.stopPropagation()}
         >
           <button
@@ -247,14 +252,14 @@ export function PlatformRotation() {
       )}
 
       {/* Country badge */}
-      <div className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-2">
+      <div className="presentation-country absolute left-1/2 top-6 z-20 flex -translate-x-1/2 items-center gap-2">
         <span className={`fi fi-${country.id} text-lg rounded shadow-sm`} />
         <span className="text-white/40 text-sm">{country.name}</span>
       </div>
 
       {/* Hint */}
       {showControls && (
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 text-white/20 text-xs">
+        <div className="presentation-hint absolute bottom-20 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs text-white/20">
           ← → to cycle · space to pause · Esc to exit · click to advance
         </div>
       )}
