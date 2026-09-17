@@ -94,13 +94,13 @@ export function CountryDashboard() {
   return (
     <Layout showBack backTo="/map">
       <div className="h-full overflow-y-auto">
-        <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-6">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="mb-5 flex flex-col items-stretch gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <span className={`fi fi-${country.id} text-2xl rounded shadow-sm`} />
               <div>
-                <h1 className="text-2xl font-bold text-slate-800">{country.name}</h1>
+                <h1 className="text-xl font-bold text-slate-800 sm:text-2xl">{country.name}</h1>
                 <p className="text-sm text-slate-500">{country.region}</p>
               </div>
             </div>
@@ -109,7 +109,7 @@ export function CountryDashboard() {
             <select
               value={country.id}
               onChange={(e) => navigate(`/country/${e.target.value}`)}
-              className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-accent/30"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-accent/30 sm:w-auto"
             >
               <option value={country.id}>{country.name}</option>
             </select>
