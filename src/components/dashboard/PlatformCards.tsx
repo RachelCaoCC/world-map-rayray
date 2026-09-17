@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import type { CountryPlatformStats, PlatformKey } from "../../types";
 import { PLATFORM_INFO, getProfileUrl } from "../../data/mockData";
 import { useDashboardStore } from "../../store/useStore";
+import { getManualSnapshots } from "../../data/manualSnapshots";
 
 interface PlatformCardsProps {
   stats: CountryPlatformStats[];
@@ -24,6 +25,9 @@ export function PlatformCards({ stats, countryId }: PlatformCardsProps) {
         const info = PLATFORM_INFO[stat.platform as PlatformKey];
         const connections = getConnectionsForCountryPlatform(countryId, stat.platform as PlatformKey);
         const primaryConn = connections[0];
+        const manualSnapshots = primaryConn ? [] : getManualSnapshots(countryId, stat.platform as PlatformKey);
+        const isManual = manualSnapshots.length > 0;
+        const manualAccountLabel = manualSnapshots.map((snapshot) => snapshot.accountName).join(", ");
         const secondaryLabel = stat.platform === "facebook"
           ? "People Talking"
           : stat.platform === "instagram"
@@ -63,14 +67,15 @@ export function PlatformCards({ stats, countryId }: PlatformCardsProps) {
               <div>
                 <p className="text-sm font-semibold text-slate-800">{info.name}</p>
                 {primaryConn ? (
-                  <span className="text-xs text-slate-500 truncate max-w-[120px] block">
+                  <span className="text-xs text-slate-500 truncate max-w-[140px] block">
                     {primaryConn.accountName}
                   </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-xs text-positive">
-                    <span className="w-1.5 h-1.5 rounded-full bg-positive" />
-                    Connected
+                ) : isManual ? (
+                  <span className="text-xs text-slate-500 truncate max-w-[140px] block" title={manualAccountLabel}>
+                    {manualAccountLabel}
                   </span>
+                ) : (
+                  <span className="text-xs text-slate-400">No data</span>
                 )}
               </div>
             </div>
@@ -80,17 +85,31 @@ export function PlatformCards({ stats, countryId }: PlatformCardsProps) {
                 <p className="text-xs text-slate-500">Followers / Subscribers</p>
                 <div className="flex items-baseline gap-1">
                   <p className="text-lg font-bold text-slate-800">{formatNum(stat.followers)}</p>
-                  <span className={`text-xs font-medium ${changeColor(stat.followerGrowthPct30d)}`}>{formatChange(stat.followerGrowthPct30d)}</span>
+                  {!isManual && (
+                    <span className={`text-xs font-medium ${changeColor(stat.followerGrowthPct30d)}`}>{formatChange(stat.followerGrowthPct30d)}</span>
+                  )}
                 </div>
               </div>
-              <div>
-                <p className="text-xs text-slate-500">{secondaryLabel}</p>
-                <div className="flex items-baseline gap-1">
-                  <p className="text-lg font-bold text-slate-800">{secondaryValue}</p>
-                  <span className={`text-xs font-medium ${changeColor(stat.viewGrowthPct30d)}`}>{formatChange(stat.viewGrowthPct30d)}</span>
+              {isManual ? (
+                <div className="flex items-center justify-between pt-1">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-700">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                    Manual snapshot
+                  </span>
+                  <span className="text-[11px] text-slate-400">{stat.lastUpdated}</span>
                 </div>
-              </div>
-              <p className="text-[11px] text-slate-400">vs. previous 7 days</p>
+              ) : (
+                <>
+                  <div>
+                    <p className="text-xs text-slate-500">{secondaryLabel}</p>
+                    <div className="flex items-baseline gap-1">
+                      <p className="text-lg font-bold text-slate-800">{secondaryValue}</p>
+                      <span className={`text-xs font-medium ${changeColor(stat.viewGrowthPct30d)}`}>{formatChange(stat.viewGrowthPct30d)}</span>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-slate-400">vs. previous 7 days</p>
+                </>
+              )}
             </div>
 
             <div className="mt-3 text-xs text-accent font-medium opacity-0 group-hover:opacity-100 transition-opacity">
