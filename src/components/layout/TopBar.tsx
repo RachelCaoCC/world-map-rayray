@@ -16,42 +16,42 @@ export function TopBar({ showBack, backTo }: { showBack?: boolean; backTo?: stri
   const userName = user?.email?.split("@")[0] ?? "Admin";
 
   return (
-    <header className="h-16 bg-primary flex items-center justify-between px-6 shadow-lg z-50">
-      <div className="flex items-center gap-3">
+    <header className="min-h-14 bg-primary flex items-center justify-between gap-2 px-3 py-2 shadow-lg z-50 sm:h-16 sm:px-6">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
         {showBack && backTo && (
           <Link
             to={backTo}
-            className="text-white/70 hover:text-white transition-colors text-sm mr-2"
+            className="shrink-0 text-white/70 hover:text-white transition-colors text-xs sm:mr-2 sm:text-sm"
           >
             ← Back
           </Link>
         )}
-        <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
+        <div className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent sm:flex">
           <span className="text-white font-bold text-sm">A</span>
         </div>
-        <h1 className="text-white font-semibold text-lg">
+        <h1 className="truncate text-sm font-semibold text-white sm:text-lg">
           {isHome ? "Global Social Media Dashboard" : isReport ? "Global Report" : "Accounts Dashboard"}
         </h1>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex shrink-0 items-center gap-2 sm:gap-4">
         {isHome && (
           <Link
             to="/report"
-            className="inline-flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-xs font-medium text-white hover:bg-white/20 transition-colors"
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-2 text-xs font-medium text-white transition-colors hover:bg-white/20 sm:px-3"
             title="Open global analysis report"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 19V9m5 10V5m5 14v-7m5 7V3" />
             </svg>
-            Global Report
+            <span className="hidden md:inline">Global Report</span>
           </Link>
         )}
 
         {isHome && (
           <Link
             to="/present"
-            className="text-white/70 hover:text-white transition-colors"
+            className="hidden text-white/70 transition-colors hover:text-white sm:block"
             title="Start global live presentation"
             aria-label="Start global live presentation"
           >
@@ -64,7 +64,7 @@ export function TopBar({ showBack, backTo }: { showBack?: boolean; backTo?: stri
 
         <Link
           to="/admin/platforms"
-          className="text-white/70 hover:text-white transition-colors"
+          className="text-white/70 transition-colors hover:text-white"
           title="Platform Management"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -74,7 +74,7 @@ export function TopBar({ showBack, backTo }: { showBack?: boolean; backTo?: stri
           </svg>
         </Link>
 
-        <button className="text-white/70 hover:text-white transition-colors relative">
+        <button className="relative hidden text-white/70 transition-colors hover:text-white sm:block" aria-label="Notifications">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
               d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -91,7 +91,7 @@ export function TopBar({ showBack, backTo }: { showBack?: boolean; backTo?: stri
               <p className="text-white text-sm font-medium">{userName}</p>
               <p className="text-white/60 text-xs">Administrator</p>
             </div>
-            <svg className="w-4 h-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="hidden w-4 h-4 text-white/60 sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
