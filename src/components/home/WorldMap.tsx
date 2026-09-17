@@ -54,6 +54,31 @@ export function WorldMap() {
   const markerRefs = useRef<Map<string, SVGGElement>>(new Map());
   const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const markerClickedRef = useRef(false);
+  const zoomFrameRef = useRef<number | null>(null);
+
+  const animateZoom = useCallback((targetZoom: number, targetCoordinates = mapPosition.coordinates) => {
+    if (zoomFrameRef.current) cancelAnimationFrame(zoomFrameRef.current);
+    const from = mapPosition;
+    const startedAt = performance.now();
+    const duration = 220;
+    const step = (now: number) => {
+      const progress = Math.min((now - startedAt) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setMapPosition({
+        coordinates: [
+          from.coordinates[0] + (targetCoordinates[0] - from.coordinates[0]) * eased,
+          from.coordinates[1] + (targetCoordinates[1] - from.coordinates[1]) * eased,
+        ],
+        zoom: from.zoom + (targetZoom - from.zoom) * eased,
+      });
+      if (progress < 1) zoomFrameRef.current = requestAnimationFrame(step);
+    };
+    zoomFrameRef.current = requestAnimationFrame(step);
+  }, [mapPosition]);
+
+  useEffect(() => () => {
+    if (zoomFrameRef.current) cancelAnimationFrame(zoomFrameRef.current);
+  }, []);
 
   const isGlobalView = selectedCountryId === null;
 
@@ -230,10 +255,7 @@ export function WorldMap() {
           type="button"
           aria-label="Zoom in"
           title="Zoom in"
-          onClick={() => setMapPosition((position) => ({
-            ...position,
-            zoom: Math.min(position.zoom * 1.5, 6),
-          }))}
+          onClick={() => animateZoom(Math.min(mapPosition.zoom * 1.35, 6))}
           className="flex h-10 w-10 items-center justify-center text-xl font-medium text-slate-700 hover:bg-slate-100"
         >
           +
@@ -242,10 +264,7 @@ export function WorldMap() {
           type="button"
           aria-label="Zoom out"
           title="Zoom out"
-          onClick={() => setMapPosition((position) => ({
-            ...position,
-            zoom: Math.max(position.zoom / 1.5, 1),
-          }))}
+          onClick={() => animateZoom(Math.max(mapPosition.zoom / 1.35, 1))}
           className="flex h-10 w-10 items-center justify-center border-t border-slate-200 text-xl font-medium text-slate-700 hover:bg-slate-100"
         >
           −
@@ -254,7 +273,7 @@ export function WorldMap() {
           type="button"
           aria-label="Reset map"
           title="Reset map"
-          onClick={() => setMapPosition({ coordinates: [0, 0], zoom: 1 })}
+          onClick={() => animateZoom(1, [0, 0])}
           className="flex h-10 w-10 items-center justify-center border-t border-slate-200 text-slate-600 hover:bg-slate-100"
         >
           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2}>
