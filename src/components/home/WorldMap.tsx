@@ -106,8 +106,8 @@ export function WorldMap() {
       <ComposableMap
         projection="geoMercator"
         projectionConfig={{
-          scale: 130,
-          center: [20, 20],
+          scale: 108,
+          center: [10, 8],
         }}
         style={{ width: "100%", height: "100%" }}
       >
@@ -208,6 +208,13 @@ export function WorldMap() {
           );
         })}
       </ComposableMap>
+
+      {/* Global view helper */}
+      {isGlobalView && (
+        <div className="absolute bottom-4 right-4 rounded-lg border border-slate-200 bg-white/90 px-4 py-2 shadow-sm backdrop-blur-sm">
+          <p className="text-sm font-medium text-slate-700">🌍 Global View — Select a country for details</p>
+        </div>
+      )}
 
       {/* Hover card — anchored to country marker position */}
       {hoveredCountry && (
