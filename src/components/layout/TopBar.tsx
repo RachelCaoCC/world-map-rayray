@@ -1,11 +1,16 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { supabase } from "../../lib/supabase";
+import { useDashboardStore } from "../../store/useStore";
+import { downloadGlobalReport } from "../../utils/globalReport";
 
 export function TopBar({ showBack, backTo }: { showBack?: boolean; backTo?: string }) {
   const location = useLocation();
   const isHome = location.pathname === "/map";
   const { user } = useAuth();
+  const countries = useDashboardStore((state) => state.countries);
+  const connections = useDashboardStore((state) => state.platformConnections);
+  const accountStats = useDashboardStore((state) => state.accountStats);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -34,6 +39,20 @@ export function TopBar({ showBack, backTo }: { showBack?: boolean; backTo?: stri
       </div>
 
       <div className="flex items-center gap-4">
+        {isHome && (
+          <button
+            type="button"
+            onClick={() => downloadGlobalReport(countries, connections, accountStats)}
+            className="inline-flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-xs font-medium text-white hover:bg-white/20 transition-colors"
+            title="Download all connected and manual account data"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" />
+            </svg>
+            Export Global Report
+          </button>
+        )}
+
         {isHome && (
           <Link
             to="/present"
