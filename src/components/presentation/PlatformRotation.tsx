@@ -8,8 +8,8 @@ import { usePlatformRotation } from "../../hooks/usePlatformRotation";
 import { useLiveStats } from "../../hooks/useLiveStats";
 import type { PlatformKey } from "../../types";
 
-const DWELL_MS = 6000;
-const POLL_MS = 15000;
+const DWELL_MS = 5000;
+const POLL_MS = 10000;
 
 export function PlatformRotation() {
   const { id } = useParams<{ id: string }>();
