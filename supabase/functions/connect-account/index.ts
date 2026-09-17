@@ -23,6 +23,7 @@ serve(async (req: Request) => {
       profileUrl,
       accessToken,
       refreshToken,
+      expiresIn,
     } = await req.json();
 
     if (!countryId || !platform || !externalAccountId || !accessToken) {
@@ -62,7 +63,11 @@ serve(async (req: Request) => {
         status: "connected",
         access_token: encryptToken(accessToken),
         refresh_token: refreshToken ? encryptToken(refreshToken) : null,
-        token_expires_at: null,
+        token_expires_at: expiresIn
+          ? new Date(Date.now() + Number(expiresIn) * 1000).toISOString()
+          : (platform === "facebook" || platform === "instagram")
+            ? new Date(Date.now() + 60 * 86400000).toISOString()
+            : null,
         last_synced_at: now,
         connected_by: null,
         connected_at: now,
