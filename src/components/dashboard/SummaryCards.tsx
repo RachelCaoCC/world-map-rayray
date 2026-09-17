@@ -74,12 +74,12 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-4 gap-4 mb-6">
+    <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
       {cards.map((card) => (
-        <div key={card.label} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+        <div key={card.label} className="min-w-0 rounded-xl border border-slate-100 bg-white p-3 shadow-sm sm:p-4">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">{card.label}</p>
           <div className="flex items-baseline gap-2">
-            <p className="text-xl font-bold text-slate-800">{card.value}</p>
+            <p className="break-words text-lg font-bold text-slate-800 sm:text-xl">{card.value}</p>
             {card.change && (
               <span className={`text-xs font-medium ${card.changeColor}`}>{card.change}</span>
             )}
