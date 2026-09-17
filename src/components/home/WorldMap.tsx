@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from "react-simple-maps";
 import { useDashboardStore } from "../../store/useStore";
 import { HoverCard } from "./HoverCard";
 import type { Country } from "../../types";
+import { MANUAL_ACCOUNT_SNAPSHOTS } from "../../data/manualSnapshots";
 
 const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
@@ -41,6 +42,7 @@ function relatedIds(id: string | null | undefined): Set<string> {
 export function WorldMap() {
   const countries = useDashboardStore((s) => s.countries);
   const selectedCountryId = useDashboardStore((s) => s.selectedCountryId);
+  const platformConnections = useDashboardStore((s) => s.platformConnections);
   const setSelectedCountry = useDashboardStore((s) => s.setSelectedCountry);
   const [hoveredCountry, setHoveredCountry] = useState<Country | null>(null);
   const [hoveredPos, setHoveredPos] = useState({ x: 0, y: 0 });
@@ -49,6 +51,26 @@ export function WorldMap() {
     coordinates: [0, 0],
     zoom: 1,
   });
+
+  const dataSourceByCountry = useMemo(() => {
+    const result = new Map<string, "api" | "manual" | "mixed">();
+    for (const country of countries) {
+      const connectedPlatforms = new Set(
+        platformConnections
+          .filter((connection) => connection.countryId === country.id && connection.status === "connected")
+          .map((connection) => connection.platform),
+      );
+      const hasManualFallback = MANUAL_ACCOUNT_SNAPSHOTS.some(
+        (snapshot) =>
+          snapshot.countryId === country.id &&
+          !connectedPlatforms.has(snapshot.platform as "facebook" | "instagram" | "youtube" | "tiktok"),
+      );
+      if (connectedPlatforms.size > 0 && hasManualFallback) result.set(country.id, "mixed");
+      else if (connectedPlatforms.size > 0) result.set(country.id, "api");
+      else if (hasManualFallback) result.set(country.id, "manual");
+    }
+    return result;
+  }, [countries, platformConnections]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const markerRefs = useRef<Map<string, SVGGElement>>(new Map());
@@ -186,6 +208,12 @@ export function WorldMap() {
         {countries.filter(c => c.activePlatforms.length > 0).map((country) => {
           const isSelected = selectedCountryId === country.id;
           const isActive = isGlobalView || isSelected;
+          const dataSource = dataSourceByCountry.get(country.id) ?? "api";
+          const markerColor = dataSource === "manual"
+            ? "#f59e0b"
+            : dataSource === "mixed"
+              ? "#8b5cf6"
+              : "#3b82f6";
 
           return (
             <Marker
@@ -229,7 +257,7 @@ export function WorldMap() {
                 )}
                 <circle
                   r={isSelected ? 8 : isGlobalView ? 6 : 4}
-                  fill={isActive ? "#3b82f6" : "#94a3b8"}
+                  fill={isActive ? markerColor : "#94a3b8"}
                   stroke="#fff"
                   strokeWidth={2}
                   opacity={isActive ? 1 : 0.4}
@@ -245,6 +273,16 @@ export function WorldMap() {
         })}
         </ZoomableGroup>
       </ComposableMap>
+
+      {/* Data source legend */}
+      <div
+        className="absolute left-4 top-4 z-20 flex flex-wrap gap-3 rounded-lg border border-slate-200 bg-white/90 px-3 py-2 text-[11px] font-medium text-slate-600 shadow-sm backdrop-blur-sm"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-blue-500" />API</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-violet-500" />API + Manual</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" />Manual</span>
+      </div>
 
       {/* Map zoom controls */}
       <div
