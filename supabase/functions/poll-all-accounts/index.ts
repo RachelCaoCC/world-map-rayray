@@ -12,6 +12,12 @@ const MAX_CONCURRENT = 5;
 const DELAY_MS = 200;
 function delay(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 
+function shouldRefreshSoon(conn: Record<string, unknown>): boolean {
+  if (!conn.token_expires_at) return false;
+  const expiresAt = new Date(conn.token_expires_at as string).getTime();
+  return Number.isFinite(expiresAt) && expiresAt <= Date.now() + 7 * 86400000;
+}
+
 function isAuthError(errorMsg: string): boolean {
   const lower = errorMsg.toLowerCase();
   return lower.includes("invalid authentication") ||
@@ -89,6 +95,23 @@ serve(async (req: Request) => {
       await Promise.all(batch.map(async (conn: Record<string, unknown>) => {
         try {
           let accessToken = decryptToken(conn.access_token as string);
+
+          // Proactively extend Meta/YouTube tokens seven days before expiry.
+          if (shouldRefreshSoon(conn)) {
+            const refreshed = await tryRefreshToken(conn, supabase);
+            if (refreshed) {
+              const { data: freshConn } = await supabase
+                .from("platform_connections")
+                .select("access_token, refresh_token, token_expires_at")
+                .eq("id", conn.id)
+                .single();
+              if (freshConn) {
+                Object.assign(conn, freshConn);
+                accessToken = decryptToken(freshConn.access_token);
+              }
+            }
+          }
+
           let stats = await fetchPlatformStats(
             conn.platform as string, accessToken, conn.external_account_id as string,
           );
