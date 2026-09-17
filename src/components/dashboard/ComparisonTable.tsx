@@ -12,6 +12,9 @@ export function ComparisonTable({ stats }: ComparisonTableProps) {
   const formatNum = (n: number) =>
     n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(0)}K` : n.toString();
 
+  const formatChange = (value: number) => `${value >= 0 ? "+" : ""}${value}%`;
+  const changeColor = (value: number) => value >= 0 ? "text-positive" : "text-red-500";
+
   const formatDate = (iso: string) => {
     try {
       return new Date(iso).toLocaleDateString("en-US", {
@@ -33,8 +36,8 @@ export function ComparisonTable({ stats }: ComparisonTableProps) {
               <th className="text-left px-4 py-2.5">Account Name</th>
               <th className="text-right px-4 py-2.5">Followers</th>
               <th className="text-right px-4 py-2.5">Total Views</th>
-              <th className="text-right px-4 py-2.5">Follower Growth (30D)</th>
-              <th className="text-right px-4 py-2.5">View Growth (30D)</th>
+              <th className="text-right px-4 py-2.5">Follower Growth (7D)</th>
+              <th className="text-right px-4 py-2.5">View Growth (7D)</th>
               <th className="text-right px-4 py-2.5">Last Updated</th>
               <th className="text-center px-4 py-2.5">Status</th>
             </tr>
@@ -81,10 +84,10 @@ export function ComparisonTable({ stats }: ComparisonTableProps) {
                   <td className="px-4 py-3 text-right font-medium text-slate-800">{formatNum(stat.followers)}</td>
                   <td className="px-4 py-3 text-right font-medium text-slate-800">{formatNum(stat.totalViews)}</td>
                   <td className="px-4 py-3 text-right">
-                    <span className="text-positive font-medium">+{stat.followerGrowthPct30d}%</span>
+                    <span className={`${changeColor(stat.followerGrowthPct30d)} font-medium`}>{formatChange(stat.followerGrowthPct30d)}</span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <span className="text-positive font-medium">+{stat.viewGrowthPct30d}%</span>
+                    <span className={`${changeColor(stat.viewGrowthPct30d)} font-medium`}>{formatChange(stat.viewGrowthPct30d)}</span>
                   </td>
                   <td className="px-4 py-3 text-right text-xs text-slate-500">{formatDate(stat.lastUpdated)}</td>
                   <td className="px-4 py-3 text-center">
