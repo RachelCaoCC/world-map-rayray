@@ -10,7 +10,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<PresentationMode />} />
+        <Route path="/map" element={<HomePage />} />
         <Route path="/country/:id" element={<CountryDashboard />} />
         <Route path="/present" element={<PresentationMode />} />
         <Route path="/country/:id/present" element={<PresentationMode />} />
