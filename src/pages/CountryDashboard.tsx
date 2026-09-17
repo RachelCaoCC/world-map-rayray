@@ -57,11 +57,11 @@ export function CountryDashboard() {
   const country = getCountryById(id ?? "");
   if (!country) {
     return (
-      <Layout showBack backTo="/">
+      <Layout showBack backTo="/map">
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <p className="text-slate-500 text-lg mb-2">Country not found</p>
-            <button onClick={() => navigate("/")} className="text-accent hover:underline text-sm">
+            <button onClick={() => navigate("/map")} className="text-accent hover:underline text-sm">
               ← Back to Home
             </button>
           </div>
