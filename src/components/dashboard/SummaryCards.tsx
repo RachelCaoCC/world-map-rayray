@@ -21,18 +21,35 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
     } catch { return iso; }
   };
 
+  const weightedGrowth = (
+    valueKey: "followers" | "totalViews",
+    growthKey: "followerGrowthPct30d" | "viewGrowthPct30d",
+  ) => {
+    const total = stats.reduce((sum, stat) => sum + stat[valueKey], 0);
+    if (total <= 0) return 0;
+    return stats.reduce(
+      (sum, stat) => sum + stat[growthKey] * stat[valueKey],
+      0,
+    ) / total;
+  };
+
+  const followerGrowth7d = weightedGrowth("followers", "followerGrowthPct30d");
+  const viewGrowth7d = weightedGrowth("totalViews", "viewGrowthPct30d");
+  const formatChange = (value: number) => `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`;
+  const changeColor = (value: number) => value >= 0 ? "text-positive" : "text-red-500";
+
   const cards = [
     {
       label: "Total Followers",
       value: formatNum(totalFollowers),
-      change: `+${(stats.reduce((s, p) => s + p.followerGrowthPct30d, 0) / stats.length).toFixed(1)}%`,
-      changeColor: "text-positive",
+      change: formatChange(followerGrowth7d),
+      changeColor: changeColor(followerGrowth7d),
     },
     {
       label: "Total Views",
       value: formatNum(totalViews),
-      change: `+${(stats.reduce((s, p) => s + p.viewGrowthPct30d, 0) / stats.length).toFixed(1)}%`,
-      changeColor: "text-positive",
+      change: formatChange(viewGrowth7d),
+      changeColor: changeColor(viewGrowth7d),
     },
     {
       label: "Active Platforms",
@@ -60,10 +77,10 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
             )}
           </div>
           {card.label === "Total Followers" && (
-            <p className="text-xs text-slate-400 mt-0.5">vs. last 30 days</p>
+            <p className="text-xs text-slate-400 mt-0.5">vs. previous 7 days</p>
           )}
           {card.label === "Total Views" && (
-            <p className="text-xs text-slate-400 mt-0.5">vs. last 30 days</p>
+            <p className="text-xs text-slate-400 mt-0.5">vs. previous 7 days</p>
           )}
         </div>
       ))}
