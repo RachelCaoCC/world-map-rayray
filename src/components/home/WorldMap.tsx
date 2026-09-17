@@ -148,7 +148,7 @@ export function WorldMap() {
   return (
     <div
       ref={containerRef}
-      className="flex-1 relative bg-slate-50 rounded-xl overflow-hidden"
+      className="relative h-full w-full flex-1 overflow-hidden rounded-xl bg-slate-50 touch-none"
       onClick={closeView}
     >
       <ComposableMap
@@ -272,7 +272,7 @@ export function WorldMap() {
 
       {/* Data source legend */}
       <div
-        className="absolute left-4 top-4 z-20 flex flex-wrap gap-3 rounded-lg border border-slate-200 bg-white/90 px-3 py-2 text-[11px] font-medium text-slate-600 shadow-sm backdrop-blur-sm"
+        className="absolute left-2 top-2 z-20 flex max-w-[calc(100%-3.75rem)] flex-wrap gap-2 rounded-lg border border-slate-200 bg-white/90 px-2.5 py-2 text-[10px] font-medium text-slate-600 shadow-sm backdrop-blur-sm sm:left-4 sm:top-4 sm:gap-3 sm:px-3 sm:text-[11px]"
         onClick={(event) => event.stopPropagation()}
       >
         <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-blue-500" />API</span>
@@ -282,7 +282,7 @@ export function WorldMap() {
 
       {/* Map zoom controls */}
       <div
-        className="absolute top-4 right-4 z-20 flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
+        className="absolute right-2 top-2 z-20 flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm sm:right-4 sm:top-4"
         onClick={(event) => event.stopPropagation()}
       >
         <button
@@ -290,7 +290,7 @@ export function WorldMap() {
           aria-label="Zoom in"
           title="Zoom in"
           onClick={() => animateZoom(Math.min(mapPosition.zoom * 1.35, 6))}
-          className="flex h-10 w-10 items-center justify-center text-xl font-medium text-slate-700 hover:bg-slate-100"
+          className="flex h-9 w-9 items-center justify-center text-xl font-medium text-slate-700 hover:bg-slate-100 sm:h-10 sm:w-10"
         >
           +
         </button>
@@ -299,7 +299,7 @@ export function WorldMap() {
           aria-label="Zoom out"
           title="Zoom out"
           onClick={() => animateZoom(Math.max(mapPosition.zoom / 1.35, 1))}
-          className="flex h-10 w-10 items-center justify-center border-t border-slate-200 text-xl font-medium text-slate-700 hover:bg-slate-100"
+          className="flex h-9 w-9 items-center justify-center border-t border-slate-200 text-xl font-medium text-slate-700 hover:bg-slate-100 sm:h-10 sm:w-10"
         >
           −
         </button>
@@ -308,7 +308,7 @@ export function WorldMap() {
           aria-label="Reset map"
           title="Reset map"
           onClick={() => animateZoom(1, [0, 0])}
-          className="flex h-10 w-10 items-center justify-center border-t border-slate-200 text-slate-600 hover:bg-slate-100"
+          className="flex h-9 w-9 items-center justify-center border-t border-slate-200 text-slate-600 hover:bg-slate-100 sm:h-10 sm:w-10"
         >
           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v6h6M20 20v-6h-6M5.1 15a8 8 0 0 0 13.2 2M18.9 9A8 8 0 0 0 5.7 7" />
@@ -318,7 +318,7 @@ export function WorldMap() {
 
       {/* Global view helper */}
       {isGlobalView && (
-        <div className="absolute bottom-4 right-4 rounded-lg border border-slate-200 bg-white/90 px-4 py-2 shadow-sm backdrop-blur-sm">
+        <div className="absolute bottom-4 right-4 hidden rounded-lg border border-slate-200 bg-white/90 px-4 py-2 shadow-sm backdrop-blur-sm sm:block">
           <p className="text-sm font-medium text-slate-700">🌍 Global View — Select a country for details</p>
         </div>
       )}
