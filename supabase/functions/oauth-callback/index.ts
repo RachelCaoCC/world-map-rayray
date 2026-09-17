@@ -13,12 +13,12 @@ const PLATFORM_CONFIG: Record<string, {
   getClientSecret: () => string;
 }> = {
   facebook: {
-    tokenUrl: "https://graph.facebook.com/v19.0/oauth/access_token",
+    tokenUrl: "https://graph.facebook.com/v24.0/oauth/access_token",
     getClientId: () => Deno.env.get("FACEBOOK_APP_ID") ?? "",
     getClientSecret: () => Deno.env.get("FACEBOOK_APP_SECRET") ?? "",
   },
   instagram: {
-    tokenUrl: "https://graph.facebook.com/v19.0/oauth/access_token",
+    tokenUrl: "https://graph.facebook.com/v24.0/oauth/access_token",
     getClientId: () => Deno.env.get("FACEBOOK_APP_ID") ?? "",
     getClientSecret: () => Deno.env.get("FACEBOOK_APP_SECRET") ?? "",
   },
@@ -111,7 +111,7 @@ async function fetchAvailableAccounts(
   try {
 if (platform === "facebook" || platform === "instagram") {
   const res = await fetch(
-    `https://graph.facebook.com/v19.0/me/accounts?access_token=${accessToken}`,
+    `https://graph.facebook.com/v24.0/me/accounts?access_token=${accessToken}`,
   );
   if (!res.ok) return [];
   const data = await res.json();
@@ -129,7 +129,7 @@ if (platform === "facebook" || platform === "instagram") {
   const igAccounts = await Promise.all(
     pages.map(async (p: Record<string, string>) => {
       const igRes = await fetch(
-        `https://graph.facebook.com/v19.0/${p.id}?fields=instagram_business_account{id,username,name}&access_token=${p.access_token ?? accessToken}`,
+        `https://graph.facebook.com/v24.0/${p.id}?fields=instagram_business_account{id,username,name}&access_token=${p.access_token ?? accessToken}`,
       );
       if (!igRes.ok) return null;
       const igData = await igRes.json();
@@ -248,9 +248,34 @@ serve(async (req: Request) => {
     const redirectUri = `${SUPABASE_URL}/functions/v1/oauth-callback`;
 
     // Exchange code for tokens
-    const tokens = await exchangeCode(platform, code, redirectUri);
+    let tokens = await exchangeCode(platform, code, redirectUri);
     if (!tokens?.access_token) {
       return returnError("Token exchange failed — check platform credentials");
+    }
+
+    // Meta's authorization-code exchange returns a short-lived user token and
+    // no conventional refresh_token. Exchange it immediately for a long-lived
+    // token, then keep that token as the credential used for future extensions.
+    if (platform === "facebook" || platform === "instagram") {
+      const appId = Deno.env.get("FACEBOOK_APP_ID") ?? "";
+      const appSecret = Deno.env.get("FACEBOOK_APP_SECRET") ?? "";
+      const longLivedUrl = new URL("https://graph.facebook.com/v24.0/oauth/access_token");
+      longLivedUrl.search = new URLSearchParams({
+        grant_type: "fb_exchange_token",
+        client_id: appId,
+        client_secret: appSecret,
+        fb_exchange_token: tokens.access_token,
+      }).toString();
+      const longLivedRes = await fetch(longLivedUrl);
+      const longLivedData = await longLivedRes.json();
+      if (!longLivedRes.ok || !longLivedData.access_token) {
+        return returnError(`Could not create long-lived Meta token: ${longLivedData.error?.message ?? "unknown error"}`);
+      }
+      tokens = {
+        access_token: longLivedData.access_token,
+        refresh_token: longLivedData.access_token,
+        expires_in: longLivedData.expires_in,
+      };
     }
 
     // Fetch available accounts
@@ -264,6 +289,7 @@ serve(async (req: Request) => {
       accounts,
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token ?? null,
+      expiresIn: tokens.expires_in ?? null,
     });
   } catch (err) {
     return returnError(String(err));
