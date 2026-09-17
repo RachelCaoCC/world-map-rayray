@@ -216,12 +216,6 @@ export function WorldMap() {
             <Marker
               key={country.id}
               coordinates={[country.lng, country.lat]}
-              onClick={(event) => {
-                event.stopPropagation();
-                setSelectedCountry(country.id);
-                if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
-                setHoveredCountry(country);
-              }}
               onMouseEnter={() => {
                 if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
                 setHoveredMarkerCountryId(country.id);
@@ -237,6 +231,12 @@ export function WorldMap() {
               }}
             >
               <g
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setSelectedCountry(country.id);
+                  if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
+                  setHoveredCountry(country);
+                }}
                 ref={(el) => {
                   if (el) markerRefs.current.set(country.id, el);
                   else markerRefs.current.delete(country.id);
