@@ -50,6 +50,7 @@ export function PlatformManager() {
 
   // Disconnect confirm
   const [disconnectTarget, setDisconnectTarget] = useState<{ connectionId: string; accountName: string } | null>(null);
+  const [disconnectError, setDisconnectError] = useState<string | null>(null);
 
   // Loading states for sync/disconnect per connection
   const [syncingId, setSyncingId] = useState<string | null>(null);
@@ -456,7 +457,7 @@ export function PlatformManager() {
                                         >
                                           {syncingId === conn.id ? "Syncing..." : "Sync"}
                                         </button>
-                                        <button onClick={() => setDisconnectTarget({ connectionId: conn.id, accountName: conn.accountName })}
+                                        <button onClick={() => { setDisconnectError(null); setDisconnectTarget({ connectionId: conn.id, accountName: conn.accountName }); }}
                                           className="px-2.5 py-1 text-xs font-medium bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">Disconnect</button>
                                       </>
                                     )}
@@ -473,7 +474,7 @@ export function PlatformManager() {
                                         >
                                           {syncingId === conn.id ? "Retrying..." : "Retry"}
                                         </button>
-                                        <button onClick={() => setDisconnectTarget({ connectionId: conn.id, accountName: conn.accountName })}
+                                        <button onClick={() => { setDisconnectError(null); setDisconnectTarget({ connectionId: conn.id, accountName: conn.accountName }); }}
                                           className="px-2.5 py-1 text-xs font-medium text-slate-500 rounded-lg hover:bg-slate-100 transition-colors">Disconnect</button>
                                       </>
                                     )}
@@ -693,7 +694,9 @@ export function PlatformManager() {
       {disconnectTarget && (
         <ConfirmDialog
           title={`Disconnect "${disconnectTarget.accountName}"?`}
-          message={`This will remove this account from the dashboard. Stats from this account will no longer be included in the country's aggregated metrics. You can reconnect at any time.`}
+          message={disconnectError
+            ? `Could not disconnect: ${disconnectError}`
+            : `This will remove this account from the dashboard. Stats from this account will no longer be included in the country's aggregated metrics. You can reconnect at any time.`}
           confirmLabel={disconnectingId === disconnectTarget.connectionId ? "Disconnecting..." : "Disconnect"}
           danger
           disabled={disconnectingId === disconnectTarget.connectionId}
@@ -702,11 +705,14 @@ export function PlatformManager() {
             try {
               await disconnectAccount(disconnectTarget.connectionId);
               setDisconnectTarget(null);
+              setDisconnectError(null);
+            } catch (error) {
+              setDisconnectError(error instanceof Error ? error.message : "Disconnect failed");
             } finally {
               setDisconnectingId(null);
             }
           }}
-          onCancel={() => setDisconnectTarget(null)}
+          onCancel={() => { setDisconnectTarget(null); setDisconnectError(null); }}
         />
       )}
     </Layout>
