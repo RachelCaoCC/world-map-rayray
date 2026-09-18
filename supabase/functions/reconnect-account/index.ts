@@ -83,7 +83,7 @@ serve(async (req: Request) => {
       facebook: `https://www.facebook.com/v19.0/dialog/oauth?client_id=${Deno.env.get("FACEBOOK_APP_ID")}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=pages_read_engagement,pages_show_list,read_insights&state=${encodeURIComponent(state)}`,
       instagram: `https://www.facebook.com/v19.0/dialog/oauth?client_id=${Deno.env.get("FACEBOOK_APP_ID")}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=instagram_basic,instagram_manage_insights&state=${encodeURIComponent(state)}`,
       youtube: `https://accounts.google.com/o/oauth2/v2/auth?client_id=${Deno.env.get("YOUTUBE_CLIENT_ID")}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=https://www.googleapis.com/auth/youtube.readonly&response_type=code&access_type=offline&prompt=consent&state=${encodeURIComponent(state)}`,
-      tiktok: `https://business-api.tiktok.com/portal/auth?app_id=${Deno.env.get("TIKTOK_APP_ID")}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`,
+      tiktok: `https://www.tiktok.com/v2/auth/authorize/?client_key=${Deno.env.get("TIKTOK_APP_ID")}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent("user.info.basic,user.info.stats,user.info.profile,video.list")}&state=${encodeURIComponent(state)}&disable_auto_auth=1`,
     };
 
     return new Response(JSON.stringify({

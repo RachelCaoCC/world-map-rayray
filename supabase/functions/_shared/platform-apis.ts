@@ -55,27 +55,18 @@ export async function fetchFacebookStats(
   try {
     const token = encodeURIComponent(accessToken);
     const data = await fetchGraphJson<Record<string, unknown>>(
-      `${GRAPH_API}/${pageId}?fields=followers_count,fan_count,name&access_token=${token}`,
-    );
-
-    // Facebook does not expose a Page-level lifetime view counter. Sum the
-    // lifetime views of every public Page video and follow every result page.
-    // The videos edge requires pages_read_engagement/read_insights.
-    const videos = await fetchAllGraphPages<{ views?: number | string }>(
-      `${GRAPH_API}/${pageId}/videos?fields=views&limit=100&access_token=${token}`,
-    );
-    const totalVideoViews = videos.reduce(
-      (sum, video) => sum + Number(video.views ?? 0),
-      0,
+      `${GRAPH_API}/${pageId}?fields=followers_count,fan_count,talking_about_count,name&access_token=${token}`,
     );
 
     return {
       followers: Number(data.followers_count ?? data.fan_count ?? 0),
-      totalViews: totalVideoViews,
+      // Keep the shared database column for compatibility. The UI labels
+      // this Facebook-specific value as People Talking.
+      totalViews: Number(data.talking_about_count ?? 0),
       accountName: String(data.name ?? ""),
     };
   } catch (err) {
-    return { followers: 0, totalViews: 0, error: `Facebook views fetch failed: ${String(err)}` };
+    return { followers: 0, totalViews: 0, error: `Facebook fetch failed: ${String(err)}` };
   }
 }
 
@@ -174,11 +165,8 @@ export async function fetchYouTubeStats(
 }
 
 // ─── TikTok Display API ───
-// GET https://open.tiktokapis.com/v2/user/info/?fields=follower_count,likes_count
-//
-// Both metrics use the user.info.stats scope. Total Likes is the lifetime
-// number of likes received across all public videos and does not require
-// the separate video.list permission.
+// GET user stats, then paginate video.list and sum each public video's views.
+// Requires user.info.stats and video.list.
 
 export async function fetchTikTokStats(
   accessToken: string,
@@ -190,7 +178,7 @@ export async function fetchTikTokStats(
     void openId;
 
     const userRes = await fetch(
-      "https://open.tiktokapis.com/v2/user/info/?fields=follower_count,likes_count",
+      "https://open.tiktokapis.com/v2/user/info/?fields=follower_count",
       {
         headers: { Authorization: `Bearer ${accessToken}` },
       },
@@ -208,11 +196,40 @@ export async function fetchTikTokStats(
     }
 
     const user = (userData.data as Record<string, Record<string, number>>)?.user ?? {};
+    let totalViews = 0;
+    let cursor: number | undefined;
+    let hasMore = true;
+
+    for (let page = 0; hasMore && page < 100; page++) {
+      const videoRes = await fetch(
+        "https://open.tiktokapis.com/v2/video/list/?fields=id,view_count",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ max_count: 100, ...(cursor !== undefined ? { cursor } : {}) }),
+        },
+      );
+      const videoData = await videoRes.json() as {
+        data?: { videos?: Array<{ view_count?: number }>; cursor?: number; has_more?: boolean };
+        error?: { code?: string; message?: string };
+      };
+      if (!videoRes.ok || videoData.error?.code !== "ok") {
+        throw new Error(videoData.error?.message ?? videoData.error?.code ?? `TikTok video.list HTTP ${videoRes.status}`);
+      }
+      totalViews += (videoData.data?.videos ?? []).reduce(
+        (sum, video) => sum + Number(video.view_count ?? 0),
+        0,
+      );
+      hasMore = Boolean(videoData.data?.has_more);
+      cursor = videoData.data?.cursor;
+    }
+
     return {
       followers: Number(user.follower_count ?? 0),
-      // Keep the existing database column for compatibility. The UI labels
-      // this TikTok-specific value as Total Likes, never Total Views.
-      totalViews: Number(user.likes_count ?? 0),
+      totalViews,
     };
   } catch (err) {
     return { followers: 0, totalViews: 0, error: `TikTok fetch failed: ${String(err)}` };

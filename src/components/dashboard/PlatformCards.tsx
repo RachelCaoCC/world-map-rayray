@@ -32,11 +32,11 @@ export function PlatformCards({ stats, countryId, periodDays }: PlatformCardsPro
         const isManual = manualSnapshots.length > 0;
         const manualAccountLabel = manualSnapshots.map((snapshot) => snapshot.accountName).join(", ");
         const secondaryLabel = stat.platform === "facebook"
-          ? "Video Views"
+          ? "People Talking"
           : stat.platform === "instagram"
             ? "Total Views"
             : stat.platform === "tiktok"
-              ? "Total Likes"
+              ? "Total Views"
               : "Total Views";
         const secondaryValue = formatNum(stat.totalViews);
         const profileUrl = primaryConnection
