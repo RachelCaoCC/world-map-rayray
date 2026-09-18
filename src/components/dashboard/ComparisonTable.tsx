@@ -4,13 +4,16 @@ import { useDashboardStore } from "../../store/useStore";
 
 interface ComparisonTableProps {
   stats: CountryPlatformStats[];
+  periodDays: 7 | 30 | 90;
 }
 
-export function ComparisonTable({ stats }: ComparisonTableProps) {
-  const getConnectionsForCountryPlatform = useDashboardStore((s) => s.getConnectionsForCountryPlatform);
+export function ComparisonTable({ stats, periodDays }: ComparisonTableProps) {
+  const getConnectionsForCountryPlatform = useDashboardStore((state) => state.getConnectionsForCountryPlatform);
 
-  const formatNum = (n: number) =>
-    n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(0)}K` : n.toString();
+  const formatNum = (value: number) =>
+    value >= 1_000_000 ? `${(value / 1_000_000).toFixed(1)}M` :
+    value >= 1_000 ? `${(value / 1_000).toFixed(0)}K` :
+    value.toString();
 
   const formatChange = (value: number) => `${value >= 0 ? "+" : ""}${value}%`;
   const changeColor = (value: number) => value >= 0 ? "text-positive" : "text-red-500";
@@ -20,7 +23,9 @@ export function ComparisonTable({ stats }: ComparisonTableProps) {
       return new Date(iso).toLocaleDateString("en-US", {
         day: "numeric", month: "short", year: "numeric",
       });
-    } catch { return iso; }
+    } catch {
+      return iso;
+    }
   };
 
   return (
@@ -36,8 +41,8 @@ export function ComparisonTable({ stats }: ComparisonTableProps) {
               <th className="text-left px-4 py-2.5">Account Name</th>
               <th className="text-right px-4 py-2.5">Followers</th>
               <th className="text-right px-4 py-2.5">Views / Published Content</th>
-              <th className="text-right px-4 py-2.5">Follower Growth (7D)</th>
-              <th className="text-right px-4 py-2.5">Metric Growth (7D)</th>
+              <th className="text-right px-4 py-2.5">Follower Growth ({periodDays}D)</th>
+              <th className="text-right px-4 py-2.5">Metric Growth ({periodDays}D)</th>
               <th className="text-right px-4 py-2.5">Last Updated</th>
               <th className="text-center px-4 py-2.5">Status</th>
             </tr>
@@ -60,20 +65,26 @@ export function ComparisonTable({ stats }: ComparisonTableProps) {
                   <td className="px-4 py-3 text-slate-600">
                     {connections.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
-                        {connections.map((c) => {
-                          const url = getProfileUrl(stat.platform as PlatformKey, c.externalAccountId, c.accountName, c.username, c.profileUrl);
+                        {connections.map((connection) => {
+                          const url = getProfileUrl(
+                            stat.platform as PlatformKey,
+                            connection.externalAccountId,
+                            connection.accountName,
+                            connection.username,
+                            connection.profileUrl,
+                          );
                           return url ? (
                             <a
-                              key={c.id}
+                              key={connection.id}
                               href={url}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-accent hover:underline"
                             >
-                              {c.accountName}
+                              {connection.accountName}
                             </a>
                           ) : (
-                            <span key={c.id}>{c.accountName}</span>
+                            <span key={connection.id}>{connection.accountName}</span>
                           );
                         })}
                       </div>
@@ -84,10 +95,14 @@ export function ComparisonTable({ stats }: ComparisonTableProps) {
                   <td className="px-4 py-3 text-right font-medium text-slate-800">{formatNum(stat.followers)}</td>
                   <td className="px-4 py-3 text-right font-medium text-slate-800">{formatNum(stat.totalViews)}</td>
                   <td className="px-4 py-3 text-right">
-                    <span className={`${changeColor(stat.followerGrowthPct30d)} font-medium`}>{formatChange(stat.followerGrowthPct30d)}</span>
+                    <span className={`${changeColor(stat.followerGrowthPct30d)} font-medium`}>
+                      {formatChange(stat.followerGrowthPct30d)}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <span className={`${changeColor(stat.viewGrowthPct30d)} font-medium`}>{formatChange(stat.viewGrowthPct30d)}</span>
+                    <span className={`${changeColor(stat.viewGrowthPct30d)} font-medium`}>
+                      {formatChange(stat.viewGrowthPct30d)}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-right text-xs text-slate-500">{formatDate(stat.lastUpdated)}</td>
                   <td className="px-4 py-3 text-center">
