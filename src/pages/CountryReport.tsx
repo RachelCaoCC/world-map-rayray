@@ -13,6 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { Layout } from "../components/layout/Layout";
+import { EditableNarrative } from "../components/report/EditableNarrative";
 import { PLATFORM_COLORS, PLATFORM_INFO } from "../data/mockData";
 import { useDashboardStore } from "../store/useStore";
 import type { PlatformKey, TrendPoint } from "../types";
@@ -94,6 +95,21 @@ export function CountryReport() {
     followers: stat.followers,
     secondary: stat.totalViews,
   }));
+  const leadingPlatformName = leadingPlatform
+    ? PLATFORM_INFO[leadingPlatform.platform as PlatformKey].name
+    : "—";
+  const strongestGrowthName = strongestGrowth
+    ? PLATFORM_INFO[strongestGrowth.platform as PlatformKey].name
+    : "—";
+  const weakestGrowthName = weakestGrowth
+    ? PLATFORM_INFO[weakestGrowth.platform as PlatformKey].name
+    : "—";
+  const concentrationNarrative =
+    `${leadingPlatformName} is the largest channel with ${formatNumber(leadingPlatform?.followers ?? 0)} followers, representing ${leaderShare.toFixed(1)}% of this market's audience.`;
+  const growthNarrative =
+    `${strongestGrowthName} leads follower growth at ${formatGrowth(strongestGrowth?.followerGrowth ?? 0)} versus the previous ${periodDays} days.`;
+  const priorityNarrative =
+    `Review ${weakestGrowthName}, currently at ${formatGrowth(weakestGrowth?.followerGrowth ?? 0)}. Test content cadence, creative and cross-platform promotion.`;
 
   return (
     <Layout showBack backTo={`/country/${country.id}`}>
@@ -150,25 +166,24 @@ export function CountryReport() {
             <div className="mt-4 grid gap-4 lg:grid-cols-3">
               <article className="rounded-xl border border-l-4 border-slate-200 border-l-blue-500 bg-white p-5 shadow-sm">
                 <h3 className="font-semibold text-slate-900">Platform concentration</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  <strong>{leadingPlatform ? PLATFORM_INFO[leadingPlatform.platform as PlatformKey].name : "—"}</strong> is the largest channel with{" "}
-                  <strong>{formatNumber(leadingPlatform?.followers ?? 0)}</strong> followers, representing{" "}
-                  <strong>{leaderShare.toFixed(1)}%</strong> of this market's audience.
-                </p>
+                <EditableNarrative
+                  storageKey={`country:${country.id}:${periodDays}:concentration`}
+                  defaultValue={concentrationNarrative}
+                />
               </article>
               <article className="rounded-xl border border-l-4 border-slate-200 border-l-emerald-500 bg-white p-5 shadow-sm">
                 <h3 className="font-semibold text-slate-900">Growth leader</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  <strong>{strongestGrowth ? PLATFORM_INFO[strongestGrowth.platform as PlatformKey].name : "—"}</strong> leads follower growth at{" "}
-                  <strong>{formatGrowth(strongestGrowth?.followerGrowth ?? 0)}</strong> versus the previous {periodDays} days.
-                </p>
+                <EditableNarrative
+                  storageKey={`country:${country.id}:${periodDays}:growth`}
+                  defaultValue={growthNarrative}
+                />
               </article>
               <article className="rounded-xl border border-l-4 border-slate-200 border-l-amber-500 bg-white p-5 shadow-sm">
                 <h3 className="font-semibold text-slate-900">Priority action</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Review <strong>{weakestGrowth ? PLATFORM_INFO[weakestGrowth.platform as PlatformKey].name : "—"}</strong>, currently at{" "}
-                  <strong>{formatGrowth(weakestGrowth?.followerGrowth ?? 0)}</strong>. Test content cadence, creative and cross-platform promotion.
-                </p>
+                <EditableNarrative
+                  storageKey={`country:${country.id}:${periodDays}:priority`}
+                  defaultValue={priorityNarrative}
+                />
               </article>
             </div>
           </section>
