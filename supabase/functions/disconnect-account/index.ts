@@ -1,83 +1,76 @@
-// get-oauth-url
-// POST { platform, countryId }
-// Returns the OAuth authorization URL with client_id from server-side secrets.
+// disconnect-account
+// POST { connectionId: string }
+// Permanently removes one OAuth connection and its cascaded account statistics.
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { getServiceClient } from "../_shared/supabase-client.ts";
 import { handleCors, corsHeaders } from "../_shared/cors.ts";
-
-const OAUTH_URLS: Record<string, string> = {
-  facebook: "https://www.facebook.com/dialog/oauth",
-  instagram: "https://www.facebook.com/dialog/oauth",
-  youtube: "https://accounts.google.com/o/oauth2/v2/auth",
-  tiktok: "https://www.tiktok.com/v2/auth/authorize/",
-};
-
-const SCOPES: Record<string, string[]> = {
-  facebook: ["pages_show_list", "pages_read_engagement"],
-  instagram: ["instagram_manage_insights", "instagram_basic"],
-  youtube: ["https://www.googleapis.com/auth/youtube.readonly"],
-  tiktok: ["user.info.basic", "video.list"],
-};
 
 serve(async (req: Request) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
-  const headers = corsHeaders(req);
+  const headers = { ...corsHeaders(req), "Content-Type": "application/json" };
+
   try {
-    const { platform, countryId } = await req.json();
-    if (!platform || !countryId) {
-      return new Response(JSON.stringify({ error: "platform and countryId required" }), { status: 400, headers });
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Missing authorization" }), { status: 401, headers });
     }
 
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const redirectUri = `${SUPABASE_URL}/functions/v1/oauth-callback`;
-    const scopes = SCOPES[platform] ?? [];
-    const state = JSON.stringify({ platform, countryId });
+    const supabase = getServiceClient();
+    const token = authHeader.slice(7);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
-    let authUrl = "";
-
-    if (platform === "facebook" || platform === "instagram") {
-      const clientId = Deno.env.get("FACEBOOK_APP_ID") ?? "";
-      const params = new URLSearchParams({
-        client_id: clientId, redirect_uri: redirectUri,
-        scope: scopes.join(","), state, response_type: "code",
-      });
-      authUrl = `${OAUTH_URLS[platform]}?${params.toString()}`;
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Invalid session. Please sign in again." }), { status: 401, headers });
     }
 
-    if (platform === "youtube") {
-      const clientId = Deno.env.get("YOUTUBE_CLIENT_ID") ?? "";
-      const params = new URLSearchParams({
-        client_id: clientId, redirect_uri: redirectUri,
-        scope: scopes.join(" "), state, response_type: "code",
-        access_type: "offline", prompt: "consent",
-      });
-      authUrl = `${OAUTH_URLS[platform]}?${params.toString()}`;
+    const isAdmin = user.app_metadata?.role === "admin" || user.user_metadata?.role === "admin";
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: "Admin access required" }), { status: 403, headers });
     }
 
-    if (platform === "tiktok") {
-      // TikTok uses Client Key for OAuth initialization instead of App ID
-      const clientKey = Deno.env.get("TIKTOK_APP_ID") ?? ""; 
-      
-      const params = new URLSearchParams({
-        client_key: clientKey,       // FIX: Changed from app_id
-        redirect_uri: redirectUri,
-        response_type: "code",       // FIX: Added mandatory OAuth parameter
-        scope: scopes.join(","),     // E.g., "user.info.basic,user.info.stats"
-        state: state,
-      });
-      
-      authUrl = `${OAUTH_URLS[platform]}?${params.toString()}`;
+    const { connectionId } = await req.json();
+    if (!connectionId) {
+      return new Response(JSON.stringify({ error: "connectionId required" }), { status: 400, headers });
     }
 
+    const { data: connection, error: lookupError } = await supabase
+      .from("platform_connections")
+      .select("id, country_id, platform, account_name")
+      .eq("id", connectionId)
+      .maybeSingle();
 
-    if (!authUrl) {
-      return new Response(JSON.stringify({ error: `Unknown platform: ${platform}` }), { status: 400, headers });
+    if (lookupError) {
+      return new Response(JSON.stringify({ error: lookupError.message }), { status: 500, headers });
+    }
+    if (!connection) {
+      return new Response(JSON.stringify({ error: "Connection not found" }), { status: 404, headers });
     }
 
-    return new Response(JSON.stringify({ ok: true, authUrl }), { headers });
+    const { error: deleteError } = await supabase
+      .from("platform_connections")
+      .delete()
+      .eq("id", connectionId);
+
+    if (deleteError) {
+      return new Response(JSON.stringify({ error: deleteError.message }), { status: 500, headers });
+    }
+
+    await supabase.from("audit_log").insert({
+      action: "disconnect",
+      actor: user.email ?? "Admin",
+      country_id: connection.country_id,
+      platform: connection.platform,
+      details: `Disconnected "${connection.account_name}"`,
+    });
+
+    return new Response(JSON.stringify({ ok: true, connectionId }), { headers });
   } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers });
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), {
+      status: 500,
+      headers,
+    });
   }
 });
