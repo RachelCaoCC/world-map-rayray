@@ -120,19 +120,23 @@ export async function fetchYouTubeStats(
 }
 
 // ─── TikTok Display API ───
-// GET  https://open.tiktokapis.com/v2/user/info/?fields=follower_count,video_count
-// POST https://open.tiktokapis.com/v2/video/list/?fields=view_count
+// GET https://open.tiktokapis.com/v2/user/info/?fields=follower_count,likes_count
 //
-// TikTok returns at most 20 videos per page. We must POST a JSON body and
-// follow every cursor to calculate the account's complete public-video views.
+// Both metrics use the user.info.stats scope. Total Likes is the lifetime
+// number of likes received across all public videos and does not require
+// the separate video.list permission.
 
 export async function fetchTikTokStats(
   accessToken: string,
   openId: string,
 ): Promise<PlatformStats | null> {
   try {
+    // openId is retained in the shared fetcher signature for compatibility;
+    // TikTok resolves the current user from the bearer token.
+    void openId;
+
     const userRes = await fetch(
-      "https://open.tiktokapis.com/v2/user/info/?fields=follower_count,video_count",
+      "https://open.tiktokapis.com/v2/user/info/?fields=follower_count,likes_count",
       {
         headers: { Authorization: `Bearer ${accessToken}` },
       },
@@ -142,6 +146,7 @@ export async function fetchTikTokStats(
     try { userData = JSON.parse(userText); } catch {
       return { followers: 0, totalViews: 0, error: `TikTok API: ${userText.substring(0, 200)}` };
     }
+
     const userErr = userData.error as Record<string, string> | undefined;
     if (!userRes.ok || userErr?.code !== "ok") {
       const msg = userErr?.message ?? userErr?.code ?? `HTTP ${userRes.status}`;
@@ -149,73 +154,12 @@ export async function fetchTikTokStats(
     }
 
     const user = (userData.data as Record<string, Record<string, number>>)?.user ?? {};
-    const followers = Number(user.follower_count ?? 0);
-
-    let totalViews = 0;
-    let cursor: number | undefined;
-    let hasMore = true;
-    const seenCursors = new Set<number>();
-
-    while (hasMore) {
-      const body: { max_count: number; cursor?: number } = { max_count: 20 };
-      if (cursor !== undefined) body.cursor = cursor;
-
-      const videoRes = await fetch(
-        "https://open.tiktokapis.com/v2/video/list/?fields=view_count",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        },
-      );
-      const videoText = await videoRes.text();
-
-      let videoData: Record<string, unknown>;
-      try { videoData = JSON.parse(videoText); } catch {
-        return {
-          followers,
-          totalViews: 0,
-          error: `TikTok video API: ${videoText.substring(0, 200)}`,
-        };
-      }
-
-      const videoErr = videoData.error as Record<string, string> | undefined;
-      if (!videoRes.ok || videoErr?.code !== "ok") {
-        const msg = videoErr?.message ?? videoErr?.code ?? `HTTP ${videoRes.status}`;
-        return {
-          followers,
-          totalViews: 0,
-          error: `TikTok video API: ${msg}. Confirm the account authorized the video.list scope.`,
-        };
-      }
-
-      const data = (videoData.data ?? {}) as {
-        videos?: Array<{ view_count?: number | string }>;
-        cursor?: number;
-        has_more?: boolean;
-      };
-      for (const video of data.videos ?? []) {
-        totalViews += Number(video.view_count ?? 0);
-      }
-
-      hasMore = data.has_more === true;
-      if (!hasMore) break;
-
-      if (typeof data.cursor !== "number" || seenCursors.has(data.cursor)) {
-        return {
-          followers,
-          totalViews: 0,
-          error: "TikTok video API: invalid pagination cursor; existing views were not overwritten.",
-        };
-      }
-      seenCursors.add(data.cursor);
-      cursor = data.cursor;
-    }
-
-    return { followers, totalViews };
+    return {
+      followers: Number(user.follower_count ?? 0),
+      // Keep the existing database column for compatibility. The UI labels
+      // this TikTok-specific value as Total Likes, never Total Views.
+      totalViews: Number(user.likes_count ?? 0),
+    };
   } catch (err) {
     return { followers: 0, totalViews: 0, error: `TikTok fetch failed: ${String(err)}` };
   }
