@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from "react-simple-maps";
-import { useNavigate } from "react-router-dom";
 import { useDashboardStore } from "../../store/useStore";
 import { HoverCard } from "./HoverCard";
 import type { Country } from "../../types";
@@ -48,7 +47,6 @@ function relatedIds(id: string | null | undefined): Set<string> {
 
 
 export function WorldMap() {
-  const navigate = useNavigate();
   const countries = useDashboardStore((s) => s.countries);
   const selectedCountryId = useDashboardStore((s) => s.selectedCountryId);
   const platformConnections = useDashboardStore((s) => s.platformConnections);
