@@ -2,24 +2,29 @@ import type { CountryPlatformStats } from "../../types";
 
 interface SummaryCardsProps {
   stats: CountryPlatformStats[];
+  periodDays: 7 | 30 | 90;
 }
 
-export function SummaryCards({ stats }: SummaryCardsProps) {
-  const totalFollowers = stats.reduce((sum, s) => sum + s.followers, 0);
-  const viewStats = stats.filter((s) => s.platform === "youtube" || s.platform === "tiktok");
-  const totalViews = viewStats.reduce((sum, s) => sum + s.totalViews, 0);
-  const activeCount = stats.filter(s => s.accountCount > 0).length;
+export function SummaryCards({ stats, periodDays }: SummaryCardsProps) {
+  const totalFollowers = stats.reduce((sum, stat) => sum + stat.followers, 0);
+  const viewStats = stats.filter((stat) => stat.platform === "youtube" || stat.platform === "tiktok");
+  const totalViews = viewStats.reduce((sum, stat) => sum + stat.totalViews, 0);
+  const activeCount = stats.filter((stat) => stat.accountCount > 0).length;
   const lastUpdated = stats[0]?.lastUpdated ?? "";
 
-  const formatNum = (n: number) =>
-    n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(0)}K` : n.toString();
+  const formatNum = (value: number) =>
+    value >= 1_000_000 ? `${(value / 1_000_000).toFixed(1)}M` :
+    value >= 1_000 ? `${(value / 1_000).toFixed(0)}K` :
+    value.toString();
 
   const formatTimestamp = (iso: string) => {
     try {
-      const d = new Date(iso);
-      return d.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })
-        + " " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
-    } catch { return iso; }
+      const date = new Date(iso);
+      return date.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })
+        + " " + date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+    } catch {
+      return iso;
+    }
   };
 
   const weightedGrowth = (
@@ -34,8 +39,8 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
     ) / total;
   };
 
-  const followerGrowth7d = weightedGrowth("followers", "followerGrowthPct30d");
-  const viewGrowth7d = (() => {
+  const followerGrowth = weightedGrowth("followers", "followerGrowthPct30d");
+  const viewGrowth = (() => {
     const total = viewStats.reduce((sum, stat) => sum + stat.totalViews, 0);
     if (total <= 0) return 0;
     return viewStats.reduce(
@@ -50,14 +55,14 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
     {
       label: "Total Followers",
       value: formatNum(totalFollowers),
-      change: formatChange(followerGrowth7d),
-      changeColor: changeColor(followerGrowth7d),
+      change: formatChange(followerGrowth),
+      changeColor: changeColor(followerGrowth),
     },
     {
       label: "Total Views",
       value: formatNum(totalViews),
-      change: formatChange(viewGrowth7d),
-      changeColor: changeColor(viewGrowth7d),
+      change: formatChange(viewGrowth),
+      changeColor: changeColor(viewGrowth),
     },
     {
       label: "Active Platforms",
@@ -84,11 +89,8 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
               <span className={`text-xs font-medium ${card.changeColor}`}>{card.change}</span>
             )}
           </div>
-          {card.label === "Total Followers" && (
-            <p className="text-xs text-slate-400 mt-0.5">vs. previous 7 days</p>
-          )}
-          {card.label === "Total Views" && (
-            <p className="text-xs text-slate-400 mt-0.5">vs. previous 7 days</p>
+          {(card.label === "Total Followers" || card.label === "Total Views") && (
+            <p className="text-xs text-slate-400 mt-0.5">vs. previous {periodDays} days</p>
           )}
         </div>
       ))}
