@@ -94,20 +94,24 @@ export async function fetchInstagramStats(
     for (let offset = 0; offset < media.length; offset += 10) {
       const batch = media.slice(offset, offset + 10);
       const values = await Promise.all(batch.map(async (item) => {
-        for (const metric of ["views", "plays"]) {
+        // Meta's newer `views` metric and legacy Reels `plays` can contain
+        // different historical totals. Query both independently and use the
+        // larger available value for this media item so old viral Reels are
+        // not lost, while still avoiding double-counting the same content.
+        const candidates = await Promise.all(["views", "plays"].map(async (metric) => {
           try {
             const insight = await fetchGraphJson<GraphPage<{ name?: string; values?: Array<{ value?: number }> }>>(
               `${GRAPH_API}/${item.id}/insights?metric=${metric}&access_token=${token}`,
             );
-            const value = Number(insight.data?.[0]?.values?.[0]?.value ?? 0);
             successfulInsights++;
-            return value;
+            return Number(insight.data?.[0]?.values?.[0]?.value ?? 0);
           } catch {
-            // Metric availability differs by media type and Graph API age.
-            // Try the next real view metric; never substitute impressions.
+            // Metric availability differs by media type and publication age.
+            return null;
           }
-        }
-        return 0;
+        }));
+        const available = candidates.filter((value): value is number => value !== null);
+        return available.length > 0 ? Math.max(...available) : 0;
       }));
       totalViews += values.reduce((sum, value) => sum + value, 0);
     }
