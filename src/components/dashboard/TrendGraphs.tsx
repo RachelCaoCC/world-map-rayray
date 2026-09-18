@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import type { TrendPoint, PlatformKey } from "../../types";
 import { PLATFORM_COLORS, PLATFORM_INFO } from "../../data/mockData";
@@ -6,6 +5,8 @@ import { PLATFORM_COLORS, PLATFORM_INFO } from "../../data/mockData";
 interface TrendGraphsProps {
   trendData: TrendPoint[];
   activePlatforms: PlatformKey[];
+  periodDays: 7 | 30 | 90;
+  onPeriodChange: (days: 7 | 30 | 90) => void;
 }
 
 const PERIODS = [
@@ -14,9 +15,12 @@ const PERIODS = [
   { label: "90D", days: 90 },
 ] as const;
 
-export function TrendGraphs({ trendData, activePlatforms }: TrendGraphsProps) {
-  const [periodDays, setPeriodDays] = useState<90 | 30 | 7>(7);
-
+export function TrendGraphs({
+  trendData,
+  activePlatforms,
+  periodDays,
+  onPeriodChange,
+}: TrendGraphsProps) {
   const filteredData = trendData.slice(-periodDays);
 
   const formatYAxis = (value: number) =>
@@ -40,17 +44,18 @@ export function TrendGraphs({ trendData, activePlatforms }: TrendGraphsProps) {
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-semibold text-slate-800">{chart.title}</h3>
             <div className="flex gap-1">
-              {PERIODS.map((p) => (
+              {PERIODS.map((period) => (
                 <button
-                  key={p.label}
-                  onClick={() => setPeriodDays(p.days)}
+                  key={period.label}
+                  onClick={() => onPeriodChange(period.days)}
+                  aria-pressed={periodDays === period.days}
                   className={`px-2 py-1 text-xs rounded font-medium transition-all ${
-                    periodDays === p.days
+                    periodDays === period.days
                       ? "bg-accent text-white"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                   }`}
                 >
-                  {p.label}
+                  {period.label}
                 </button>
               ))}
             </div>
@@ -62,7 +67,7 @@ export function TrendGraphs({ trendData, activePlatforms }: TrendGraphsProps) {
               <XAxis
                 dataKey="date"
                 tick={{ fontSize: 10, fill: "#94a3b8" }}
-                tickFormatter={(v: string) => v.slice(5)}
+                tickFormatter={(value: string) => value.slice(5)}
                 interval="preserveStartEnd"
               />
               <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={formatYAxis} width={50} />
@@ -71,15 +76,15 @@ export function TrendGraphs({ trendData, activePlatforms }: TrendGraphsProps) {
                 formatter={(value) => [formatYAxis(Number(value))]}
               />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              {chart.platforms.map((p) => (
+              {chart.platforms.map((platform) => (
                 <Line
-                  key={p}
+                  key={platform}
                   type="monotone"
-                  dataKey={chart.key === "followers" ? `${p}.followers` : `${p}.views`}
-                  stroke={PLATFORM_COLORS[p]}
+                  dataKey={chart.key === "followers" ? `${platform}.followers` : `${platform}.views`}
+                  stroke={PLATFORM_COLORS[platform]}
                   strokeWidth={2}
                   dot={false}
-                  name={PLATFORM_INFO[p].name}
+                  name={PLATFORM_INFO[platform].name}
                 />
               ))}
             </LineChart>
