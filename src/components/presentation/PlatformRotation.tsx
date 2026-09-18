@@ -16,8 +16,8 @@ type MetricKey = "followers" | "secondary";
 type MetricPreferences = Record<PlatformKey, Record<MetricKey, boolean>>;
 
 const SECONDARY_LABELS: Record<PlatformKey, string> = {
-  facebook: "People Talking",
-  instagram: "Media Published",
+  facebook: "Video Views",
+  instagram: "Total Views",
   youtube: "Total Views",
   tiktok: "Total Likes",
 };
@@ -358,78 +358,3 @@ export function PlatformRotation() {
                   <h2 className="text-lg font-bold text-white">Display Settings</h2>
                   <p className="mt-1 text-sm leading-5 text-white/45">
                     Choose the data pages included in the carousel. Zero-value metrics are skipped automatically.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSettingsOpen(false)}
-                  aria-label="Close settings"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
-                >
-                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
-                  </svg>
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                {PLATFORMS.map((platform) => {
-                  const platformAvailable = availability[platform].followers || availability[platform].secondary;
-                  if (!platformAvailable) return null;
-                  const info = PLATFORM_INFO[platform];
-                  const followerLabel = platform === "youtube" ? "Subscribers" : "Followers";
-                  return (
-                    <section key={platform} className="rounded-xl border border-white/10 bg-white/5 p-4">
-                      <div className="mb-3 flex items-center gap-3">
-                        <img src={info.logo} alt="" className="h-8 w-8 object-contain" />
-                        <h3 className="font-semibold text-white">{info.name}</h3>
-                      </div>
-                      <div className="space-y-2">
-                        {([
-                          ["followers", followerLabel],
-                          ["secondary", SECONDARY_LABELS[platform]],
-                        ] as const).map(([metric, label]) => {
-                          const hasData = availability[platform][metric];
-                          const checked = metricPreferences[platform][metric] && hasData;
-                          const isOnlySelection = checked && selectedAvailableMetricCount <= 1;
-                          return (
-                            <label
-                              key={metric}
-                              className={`flex items-center justify-between rounded-lg px-3 py-2.5 ${
-                                hasData ? "bg-white/5 text-white/80" : "bg-white/[0.02] text-white/25"
-                              }`}
-                            >
-                              <span className="text-sm">
-                                {label}
-                                {!hasData ? <span className="ml-2 text-xs">No data</span> : null}
-                              </span>
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                disabled={!hasData || isOnlySelection}
-                                onChange={() => toggleMetric(platform, metric)}
-                                className="h-4 w-4 rounded border-white/30 accent-blue-500"
-                              />
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </section>
-                  );
-                })}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setSettingsOpen(false)}
-                className="mt-6 w-full rounded-lg bg-blue-500 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-blue-400"
-              >
-                Apply to Carousel ({slides.length} slides)
-              </button>
-            </motion.aside>
-          </>
-        ) : null}
-      </AnimatePresence>
-    </div>
-  );
-}
