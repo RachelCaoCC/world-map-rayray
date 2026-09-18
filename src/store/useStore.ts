@@ -355,15 +355,19 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
 
   disconnectAccount: async (connectionId) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Your session has expired. Please sign in again.");
+
     const res = await fetch(`${FUNC_URL}/disconnect-account`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({ connectionId }),
     });
-    if (!res.ok) throw new Error("Disconnect failed");
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error ?? "Disconnect failed");
     await get().fetchAll();
   },
 
