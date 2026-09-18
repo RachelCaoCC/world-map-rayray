@@ -35,7 +35,9 @@ export function PlatformCards({ stats, countryId, periodDays }: PlatformCardsPro
           ? "People Talking"
           : stat.platform === "instagram"
             ? "Media Published"
-            : "Total Views";
+            : stat.platform === "tiktok"
+              ? "Total Likes"
+              : "Total Views";
         const secondaryValue = formatNum(stat.totalViews);
         const profileUrl = primaryConnection
           ? getProfileUrl(
