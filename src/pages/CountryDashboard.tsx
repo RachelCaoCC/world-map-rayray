@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDashboardStore } from "../store/useStore";
 import { Layout } from "../components/layout/Layout";
@@ -9,12 +9,14 @@ import { ComparisonTable } from "../components/dashboard/ComparisonTable";
 import { usePolling } from "../hooks/usePolling";
 import type { CountryPlatformStats, PlatformKey, TrendPoint } from "../types";
 
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+type PeriodDays = 7 | 30 | 90;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-function calculateSevenDayGrowth(
+function calculatePeriodGrowth(
   trendData: TrendPoint[],
   platform: PlatformKey,
   metric: "followers" | "views",
+  periodDays: PeriodDays,
 ): number {
   const points = trendData
     .filter((point) => point[platform] !== undefined)
@@ -28,7 +30,7 @@ function calculateSevenDayGrowth(
   if (points.length < 2) return 0;
 
   const latest = points[points.length - 1];
-  const targetTimestamp = latest.timestamp - SEVEN_DAYS_MS;
+  const targetTimestamp = latest.timestamp - periodDays * DAY_MS;
   const baseline = points.reduce((closest, point) =>
     Math.abs(point.timestamp - targetTimestamp) < Math.abs(closest.timestamp - targetTimestamp)
       ? point
@@ -42,6 +44,7 @@ function calculateSevenDayGrowth(
 export function CountryDashboard() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [periodDays, setPeriodDays] = useState<PeriodDays>(7);
   const getCountryById = useDashboardStore((s) => s.getCountryById);
   const getAggregatedStatsForCountry = useDashboardStore((s) => s.getAggregatedStatsForCountry);
   const fetchTrendData = useDashboardStore((s) => s.fetchTrendData);
@@ -49,7 +52,6 @@ export function CountryDashboard() {
 
   usePolling(15000);
 
-  // Fetch trend data when country changes
   useEffect(() => {
     if (id) fetchTrendData(id);
   }, [id, fetchTrendData]);
@@ -71,31 +73,28 @@ export function CountryDashboard() {
   }
 
   const platformStats = getAggregatedStatsForCountry(country.id);
-
-  const sevenDayStats = useMemo<CountryPlatformStats[]>(
-    () => platformStats.map((stat) => ({
-      ...stat,
-      // These legacy property names are retained for compatibility, but the
-      // values shown on this page are calculated from the last seven days.
-      followerGrowthPct30d: calculateSevenDayGrowth(
-        trendData,
-        stat.platform as PlatformKey,
-        "followers",
-      ),
-      viewGrowthPct30d: calculateSevenDayGrowth(
-        trendData,
-        stat.platform as PlatformKey,
-        "views",
-      ),
-    })),
-    [platformStats, trendData],
-  );
+  const periodStats: CountryPlatformStats[] = platformStats.map((stat) => ({
+    ...stat,
+    // Legacy property names are retained for compatibility. Their values
+    // now reflect the period selected for the entire dashboard.
+    followerGrowthPct30d: calculatePeriodGrowth(
+      trendData,
+      stat.platform as PlatformKey,
+      "followers",
+      periodDays,
+    ),
+    viewGrowthPct30d: calculatePeriodGrowth(
+      trendData,
+      stat.platform as PlatformKey,
+      "views",
+      periodDays,
+    ),
+  }));
 
   return (
     <Layout showBack backTo="/map">
       <div className="h-full overflow-y-auto">
         <div className="mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-6">
-          {/* Header */}
           <div className="mb-5 flex flex-col items-stretch gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <span className={`fi fi-${country.id} text-2xl rounded shadow-sm`} />
@@ -105,7 +104,6 @@ export function CountryDashboard() {
               </div>
             </div>
 
-            {/* Country selector */}
             <select
               value={country.id}
               onChange={(e) => navigate(`/country/${e.target.value}`)}
@@ -115,17 +113,18 @@ export function CountryDashboard() {
             </select>
           </div>
 
-          {/* Summary cards */}
-          <SummaryCards stats={sevenDayStats} />
+          <SummaryCards stats={periodStats} periodDays={periodDays} />
 
-          {/* Platform cards */}
-          <PlatformCards stats={sevenDayStats} countryId={country.id} />
+          <PlatformCards stats={periodStats} countryId={country.id} periodDays={periodDays} />
 
-          {/* Trend graphs */}
-          <TrendGraphs trendData={trendData} activePlatforms={country.activePlatforms} />
+          <TrendGraphs
+            trendData={trendData}
+            activePlatforms={country.activePlatforms}
+            periodDays={periodDays}
+            onPeriodChange={setPeriodDays}
+          />
 
-          {/* Comparison table */}
-          <ComparisonTable stats={sevenDayStats} />
+          <ComparisonTable stats={periodStats} periodDays={periodDays} />
         </div>
       </div>
     </Layout>
