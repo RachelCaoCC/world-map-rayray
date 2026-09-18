@@ -7,14 +7,17 @@ import { getManualSnapshots } from "../../data/manualSnapshots";
 interface PlatformCardsProps {
   stats: CountryPlatformStats[];
   countryId: string;
+  periodDays: 7 | 30 | 90;
 }
 
-export function PlatformCards({ stats, countryId }: PlatformCardsProps) {
+export function PlatformCards({ stats, countryId, periodDays }: PlatformCardsProps) {
   const navigate = useNavigate();
-  const getConnectionsForCountryPlatform = useDashboardStore((s) => s.getConnectionsForCountryPlatform);
+  const getConnectionsForCountryPlatform = useDashboardStore((state) => state.getConnectionsForCountryPlatform);
 
-  const formatNum = (n: number) =>
-    n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(0)}K` : n.toString();
+  const formatNum = (value: number) =>
+    value >= 1_000_000 ? `${(value / 1_000_000).toFixed(1)}M` :
+    value >= 1_000 ? `${(value / 1_000).toFixed(0)}K` :
+    value.toString();
 
   const formatChange = (value: number) => `${value >= 0 ? "+" : ""}${value}%`;
   const changeColor = (value: number) => value >= 0 ? "text-positive" : "text-red-500";
@@ -24,8 +27,8 @@ export function PlatformCards({ stats, countryId }: PlatformCardsProps) {
       {stats.map((stat) => {
         const info = PLATFORM_INFO[stat.platform as PlatformKey];
         const connections = getConnectionsForCountryPlatform(countryId, stat.platform as PlatformKey);
-        const primaryConn = connections[0];
-        const manualSnapshots = primaryConn ? [] : getManualSnapshots(countryId, stat.platform as PlatformKey);
+        const primaryConnection = connections[0];
+        const manualSnapshots = primaryConnection ? [] : getManualSnapshots(countryId, stat.platform as PlatformKey);
         const isManual = manualSnapshots.length > 0;
         const manualAccountLabel = manualSnapshots.map((snapshot) => snapshot.accountName).join(", ");
         const secondaryLabel = stat.platform === "facebook"
@@ -34,8 +37,14 @@ export function PlatformCards({ stats, countryId }: PlatformCardsProps) {
             ? "Media Published"
             : "Total Views";
         const secondaryValue = formatNum(stat.totalViews);
-        const profileUrl = primaryConn
-          ? getProfileUrl(stat.platform as PlatformKey, primaryConn.externalAccountId, primaryConn.accountName, primaryConn.username, primaryConn.profileUrl)
+        const profileUrl = primaryConnection
+          ? getProfileUrl(
+              stat.platform as PlatformKey,
+              primaryConnection.externalAccountId,
+              primaryConnection.accountName,
+              primaryConnection.username,
+              primaryConnection.profileUrl,
+            )
           : null;
 
         return (
@@ -44,13 +53,12 @@ export function PlatformCards({ stats, countryId }: PlatformCardsProps) {
             className="relative bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-left hover:shadow-md hover:border-slate-200 transition-all group cursor-pointer"
             onClick={() => navigate(`/country/${countryId}/present?platform=${stat.platform}`)}
           >
-            {/* External link button */}
             {profileUrl && (
               <a
                 href={profileUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(event) => event.stopPropagation()}
                 className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-md text-slate-400 opacity-100 transition-colors hover:bg-slate-100 hover:text-accent sm:h-6 sm:w-6 sm:opacity-0 sm:group-hover:opacity-100"
                 title="Open profile"
               >
@@ -66,9 +74,9 @@ export function PlatformCards({ stats, countryId }: PlatformCardsProps) {
               </div>
               <div>
                 <p className="text-sm font-semibold text-slate-800">{info.name}</p>
-                {primaryConn ? (
+                {primaryConnection ? (
                   <span className="text-xs text-slate-500 truncate max-w-[140px] block">
-                    {primaryConn.accountName}
+                    {primaryConnection.accountName}
                   </span>
                 ) : isManual ? (
                   <span className="text-xs text-slate-500 truncate max-w-[140px] block" title={manualAccountLabel}>
@@ -86,7 +94,9 @@ export function PlatformCards({ stats, countryId }: PlatformCardsProps) {
                 <div className="flex items-baseline gap-1">
                   <p className="text-lg font-bold text-slate-800">{formatNum(stat.followers)}</p>
                   {!isManual && (
-                    <span className={`text-xs font-medium ${changeColor(stat.followerGrowthPct30d)}`}>{formatChange(stat.followerGrowthPct30d)}</span>
+                    <span className={`text-xs font-medium ${changeColor(stat.followerGrowthPct30d)}`}>
+                      {formatChange(stat.followerGrowthPct30d)}
+                    </span>
                   )}
                 </div>
               </div>
@@ -104,10 +114,12 @@ export function PlatformCards({ stats, countryId }: PlatformCardsProps) {
                     <p className="text-xs text-slate-500">{secondaryLabel}</p>
                     <div className="flex items-baseline gap-1">
                       <p className="text-lg font-bold text-slate-800">{secondaryValue}</p>
-                      <span className={`text-xs font-medium ${changeColor(stat.viewGrowthPct30d)}`}>{formatChange(stat.viewGrowthPct30d)}</span>
+                      <span className={`text-xs font-medium ${changeColor(stat.viewGrowthPct30d)}`}>
+                        {formatChange(stat.viewGrowthPct30d)}
+                      </span>
                     </div>
                   </div>
-                  <p className="text-[11px] text-slate-400">vs. previous 7 days</p>
+                  <p className="text-[11px] text-slate-400">vs. previous {periodDays} days</p>
                 </>
               )}
             </div>
