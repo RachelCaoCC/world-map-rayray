@@ -12,8 +12,9 @@ const HOVER_CLOSE_DELAY = 3000; // Keep the hovercard open for 3 seconds
 
 // Separate very close Southeast Asian markers so each dot remains clickable.
 const MARKER_OFFSETS: Record<string, [number, number]> = {
-  my: [-2.5, 1],
-  sg: [2.5, -1],
+  my: [-3, 1.5],
+  sg: [3.5, -1.5],
+  th: [0.5, 1],
 };
 
 const COUNTRY_NAME_TO_ID: Record<string, string> = {
@@ -274,8 +275,8 @@ export function WorldMap() {
                   else markerRefs.current.delete(country.id);
                 }}
               >
-                {/* Compact hit area prevents nearby Malaysia/Singapore markers overlapping. */}
-                <circle r={9} fill="transparent" />
+                <title>{`Open ${country.name} dashboard`}</title>
+                {/* Only the visible marker receives pointer events so nearby Southeast Asian dots cannot steal the click. */}
                 {/* Pulse ring for selected */}
                 {isSelected && (
                   <circle r={16} fill="#3b82f6" opacity={0.2}>
