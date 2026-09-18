@@ -6,6 +6,7 @@ import { PlatformManager } from "./pages/PlatformManager";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import { TermsOfService } from "./pages/TermsOfService";
 import { GlobalReport } from "./pages/GlobalReport";
+import { CountryReport } from "./pages/CountryReport";
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/map" element={<HomePage />} />
         <Route path="/report" element={<GlobalReport />} />
         <Route path="/country/:id" element={<CountryDashboard />} />
+        <Route path="/country/:id/report" element={<CountryReport />} />
         <Route path="/present" element={<PresentationMode />} />
         <Route path="/country/:id/present" element={<PresentationMode />} />
         <Route path="/admin/platforms" element={<PlatformManager />} />
