@@ -25,6 +25,7 @@ declare module "react-simple-maps" {
       hover?: React.CSSProperties;
       pressed?: React.CSSProperties;
     };
+    onClick?: (event: React.MouseEvent<SVGPathElement>) => void;
   }
 
   export interface ZoomableGroupProps {
