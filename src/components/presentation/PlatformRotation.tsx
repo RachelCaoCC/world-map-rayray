@@ -16,9 +16,10 @@ export function PlatformRotation() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialPlatform = searchParams.get("platform") as PlatformKey | null;
-  const [metricMode, setMetricMode] = useState<"followers" | "both">(
-    searchParams.get("metrics") === "both" ? "both" : "followers",
-  );
+  const includeSecondaryByDefault = searchParams.get("metrics") === "both";
+  const [metricSelections, setMetricSelections] = useState<
+    Partial<Record<PlatformKey, { followers: boolean; secondary: boolean }>>
+  >({});
 
   const getCountryById = useDashboardStore((s) => s.getCountryById);
   const getAggregatedStats = useDashboardStore((s) => s.getAggregatedStats);
@@ -123,7 +124,22 @@ export function PlatformRotation() {
       : "Total Views";
   const followerValue = liveStat?.followers ?? platformStat?.followers ?? 0;
   const secondaryMetricValue = liveStat?.totalViews ?? platformStat?.totalViews ?? 0;
-  const showSecondaryMetric = metricMode === "both" && secondaryMetricValue > 0;
+  const metricSelection = metricSelections[activePlatform] ?? {
+    followers: true,
+    secondary: includeSecondaryByDefault,
+  };
+  const showFollowers = metricSelection.followers;
+  const showSecondaryMetric = metricSelection.secondary && secondaryMetricValue > 0;
+  const visibleMetricCount = Number(showFollowers) + Number(showSecondaryMetric);
+  const updateMetricSelection = (metric: "followers" | "secondary", enabled: boolean) => {
+    setMetricSelections((current) => ({
+      ...current,
+      [activePlatform]: {
+        followers: metric === "followers" ? enabled : metricSelection.followers,
+        secondary: metric === "secondary" ? enabled : metricSelection.secondary,
+      },
+    }));
+  };
   const showControls = displayPlatforms.length > 1;
 
   return (
@@ -188,48 +204,61 @@ export function PlatformRotation() {
           <h1 className="presentation-title text-4xl font-bold tracking-tight text-white">{platformInfo.name}</h1>
 
           <div
-            className="flex rounded-xl border border-white/10 bg-white/5 p-1"
+            className="flex flex-wrap justify-center gap-2 rounded-xl border border-white/10 bg-white/5 p-2"
             onClick={(event) => event.stopPropagation()}
           >
             <button
               type="button"
-              onClick={() => setMetricMode("followers")}
-              className={`rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
-                metricMode === "followers" ? "bg-white text-slate-900" : "text-white/55 hover:text-white"
+              disabled={showFollowers && !metricSelection.secondary}
+              onClick={() => updateMetricSelection("followers", !showFollowers)}
+              aria-pressed={showFollowers}
+              className={`rounded-lg px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed ${
+                showFollowers
+                  ? "bg-white text-slate-900"
+                  : "text-white/55 hover:text-white"
               }`}
             >
-              Followers only
+              {metricLabel}
             </button>
             <button
               type="button"
-              onClick={() => setMetricMode("both")}
-              className={`rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
-                metricMode === "both" ? "bg-white text-slate-900" : "text-white/55 hover:text-white"
+              disabled={
+                secondaryMetricValue <= 0 ||
+                (metricSelection.secondary && !showFollowers)
+              }
+              onClick={() => updateMetricSelection("secondary", !metricSelection.secondary)}
+              aria-pressed={metricSelection.secondary && secondaryMetricValue > 0}
+              className={`rounded-lg px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${
+                metricSelection.secondary && secondaryMetricValue > 0
+                  ? "bg-white text-slate-900"
+                  : "text-white/55 hover:text-white"
               }`}
             >
-              Followers + Views
+              {secondaryMetricLabel}
             </button>
           </div>
 
           <div className={`grid w-full max-w-5xl items-start gap-8 ${
-            showSecondaryMetric ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
+            visibleMetricCount > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
           }`}>
-            <div className="flex min-w-0 flex-col items-center gap-4">
-              <p className="presentation-metric text-lg uppercase tracking-widest text-white/50">{metricLabel}</p>
-              <FlipCounter value={followerValue} large={!showSecondaryMetric} />
-            </div>
+            {showFollowers && (
+              <div className="flex min-w-0 flex-col items-center gap-4">
+                <p className="presentation-metric text-lg uppercase tracking-widest text-white/50">{metricLabel}</p>
+                <FlipCounter value={followerValue} large={visibleMetricCount === 1} />
+              </div>
+            )}
             {showSecondaryMetric && (
               <div className="flex min-w-0 flex-col items-center gap-4">
                 <p className="presentation-metric text-lg uppercase tracking-widest text-white/50">
                   {secondaryMetricLabel}
                 </p>
-                <FlipCounter value={secondaryMetricValue} />
+                <FlipCounter value={secondaryMetricValue} large={visibleMetricCount === 1} />
               </div>
             )}
           </div>
 
-          {metricMode === "both" && secondaryMetricValue <= 0 && (
-            <p className="text-xs text-white/35">No secondary metric is available for this account.</p>
+          {secondaryMetricValue <= 0 && (
+            <p className="text-xs text-white/35">{secondaryMetricLabel} is not available for this account.</p>
           )}
         </motion.div>
       </AnimatePresence>
