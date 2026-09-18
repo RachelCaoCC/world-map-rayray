@@ -15,7 +15,10 @@ function delay(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 function shouldRefreshSoon(conn: Record<string, unknown>): boolean {
   if (!conn.token_expires_at) return false;
   const expiresAt = new Date(conn.token_expires_at as string).getTime();
-  return Number.isFinite(expiresAt) && expiresAt <= Date.now() + 7 * 86400000;
+  const refreshWindowMs = conn.platform === "tiktok"
+    ? 60 * 60 * 1000
+    : 7 * 86400000;
+  return Number.isFinite(expiresAt) && expiresAt <= Date.now() + refreshWindowMs;
 }
 
 function isAuthError(errorMsg: string): boolean {
