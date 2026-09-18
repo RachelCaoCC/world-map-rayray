@@ -59,7 +59,7 @@ async function exchangeCode(
       grant_type: "authorization_code",
       redirect_uri: redirectUri,
     });
-    console.log("TikTok token exchange request:", { url: config.tokenUrl, params: Object.fromEntries(params) });
+    console.log("TikTok token exchange request started");
     const res = await fetch(config.tokenUrl, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
