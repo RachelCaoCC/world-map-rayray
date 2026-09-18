@@ -104,7 +104,17 @@ export async function fetchInstagramStats(
               `${GRAPH_API}/${item.id}/insights?metric=${metric}&access_token=${token}`,
             );
             successfulInsights++;
-            return Number(insight.data?.[0]?.values?.[0]?.value ?? 0);
+            const metricData = insight.data?.[0] as {
+              values?: Array<{ value?: number }>;
+              total_value?: { value?: number };
+              value?: number;
+            } | undefined;
+            return Number(
+              metricData?.values?.[0]?.value ??
+              metricData?.total_value?.value ??
+              metricData?.value ??
+              0,
+            );
           } catch {
             // Metric availability differs by media type and publication age.
             return null;
