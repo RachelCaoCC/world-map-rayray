@@ -19,7 +19,7 @@ const SECONDARY_LABELS: Record<PlatformKey, string> = {
   facebook: "People Talking",
   instagram: "Media Published",
   youtube: "Total Views",
-  tiktok: "Total Views",
+  tiktok: "Total Likes",
 };
 
 function createDefaultPreferences(includeSecondary: boolean): MetricPreferences {
