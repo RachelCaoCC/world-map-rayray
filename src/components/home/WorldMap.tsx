@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from "react-simple-maps";
+import { useNavigate } from "react-router-dom";
 import { useDashboardStore } from "../../store/useStore";
 import { HoverCard } from "./HoverCard";
 import type { Country } from "../../types";
@@ -8,6 +9,12 @@ import { MANUAL_ACCOUNT_SNAPSHOTS } from "../../data/manualSnapshots";
 const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
 const HOVER_CLOSE_DELAY = 3000; // Keep the hovercard open for 3 seconds
+
+// Separate very close Southeast Asian markers so each dot remains clickable.
+const MARKER_OFFSETS: Record<string, [number, number]> = {
+  my: [-2.5, 1],
+  sg: [2.5, -1],
+};
 
 const COUNTRY_NAME_TO_ID: Record<string, string> = {
   "United States of America": "us",
@@ -40,6 +47,7 @@ function relatedIds(id: string | null | undefined): Set<string> {
 
 
 export function WorldMap() {
+  const navigate = useNavigate();
   const countries = useDashboardStore((s) => s.countries);
   const selectedCountryId = useDashboardStore((s) => s.selectedCountryId);
   const platformConnections = useDashboardStore((s) => s.platformConnections);
@@ -170,6 +178,7 @@ export function WorldMap() {
           {({ geographies }) =>
              geographies.map((geo) => {
                const countryId = COUNTRY_NAME_TO_ID[geo.properties.name];
+               const country = countryId ? countries.find((item) => item.id === countryId) : undefined;
                const selectedSet = relatedIds(selectedCountryId);
                const hoveredSet = relatedIds(hoveredMarkerCountryId);
                const isHoveredFromMarker = countryId && hoveredSet.has(countryId);
@@ -191,8 +200,14 @@ export function WorldMap() {
                   strokeWidth={0.5}
                   style={{
                     default: { outline: "none", transition: "fill 0.2s" },
-                    hover: { fill: isSelectedGeo ? "#2563eb" : "#94a3b8", outline: "none", cursor: "pointer" },
+                    hover: { fill: isSelectedGeo ? "#2563eb" : "#94a3b8", outline: "none", cursor: country ? "pointer" : "default" },
                     pressed: { outline: "none" },
+                  }}
+                  onClick={(event) => {
+                    if (!country || country.activePlatforms.length === 0) return;
+                    event.stopPropagation();
+                    setSelectedCountry(country.id);
+                    setHoveredCountry(country);
                   }}
                 />
               );
@@ -203,6 +218,11 @@ export function WorldMap() {
 
         {/* Country markers */}
         {countries.filter(c => c.activePlatforms.length > 0).map((country) => {
+          const offset = MARKER_OFFSETS[country.id] ?? [0, 0];
+          const markerCoordinates: [number, number] = [
+            country.lng + offset[0],
+            country.lat + offset[1],
+          ];
           const isSelected = selectedCountryId === country.id;
           const isActive = isGlobalView || isSelected;
           const dataSource = dataSourceByCountry.get(country.id) ?? "api";
@@ -215,7 +235,7 @@ export function WorldMap() {
           return (
             <Marker
               key={country.id}
-              coordinates={[country.lng, country.lat]}
+              coordinates={markerCoordinates}
               onMouseEnter={() => {
                 if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
                 setHoveredMarkerCountryId(country.id);
@@ -231,19 +251,31 @@ export function WorldMap() {
               }}
             >
               <g
+                role="button"
+                tabIndex={0}
+                aria-label={`Open ${country.name} dashboard`}
+                style={{ cursor: "pointer" }}
                 onClick={(event) => {
                   event.stopPropagation();
-                  setSelectedCountry(country.id);
                   if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
-                  setHoveredCountry(country);
+                  setSelectedCountry(country.id);
+                  setHoveredCountry(null);
+                  navigate(`/country/${country.id}`);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" && event.key !== " ") return;
+                  event.preventDefault();
+                  setSelectedCountry(country.id);
+                  setHoveredCountry(null);
+                  navigate(`/country/${country.id}`);
                 }}
                 ref={(el) => {
                   if (el) markerRefs.current.set(country.id, el);
                   else markerRefs.current.delete(country.id);
                 }}
               >
-                {/* Invisible large hit area */}
-                <circle r={30} fill="transparent" />
+                {/* Compact hit area prevents nearby Malaysia/Singapore markers overlapping. */}
+                <circle r={9} fill="transparent" />
                 {/* Pulse ring for selected */}
                 {isSelected && (
                   <circle r={16} fill="#3b82f6" opacity={0.2}>
