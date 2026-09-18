@@ -120,8 +120,11 @@ export async function fetchYouTubeStats(
 }
 
 // ─── TikTok Display API ───
-// GET https://open.tiktokapis.com/v2/user/info/?fields=follower_count,video_count
-// GET https://open.tiktokapis.com/v2/video/list/?fields=id,view_count
+// GET  https://open.tiktokapis.com/v2/user/info/?fields=follower_count,video_count
+// POST https://open.tiktokapis.com/v2/video/list/?fields=view_count
+//
+// TikTok returns at most 20 videos per page. We must POST a JSON body and
+// follow every cursor to calculate the account's complete public-video views.
 
 export async function fetchTikTokStats(
   accessToken: string,
@@ -144,25 +147,73 @@ export async function fetchTikTokStats(
       const msg = userErr?.message ?? userErr?.code ?? `HTTP ${userRes.status}`;
       return { followers: 0, totalViews: 0, error: `TikTok API: ${msg}` };
     }
-    const user = (userData.data as Record<string, Record<string, number>>)?.user ?? {};
-    const followers = user.follower_count ?? 0;
 
-    // Try to get video views, but don't fail if scope not authorized
+    const user = (userData.data as Record<string, Record<string, number>>)?.user ?? {};
+    const followers = Number(user.follower_count ?? 0);
+
     let totalViews = 0;
-    try {
+    let cursor: number | undefined;
+    let hasMore = true;
+    const seenCursors = new Set<number>();
+
+    while (hasMore) {
+      const body: { max_count: number; cursor?: number } = { max_count: 20 };
+      if (cursor !== undefined) body.cursor = cursor;
+
       const videoRes = await fetch(
-        "https://open.tiktokapis.com/v2/video/list/?fields=view_count&max_count=20",
+        "https://open.tiktokapis.com/v2/video/list/?fields=view_count",
         {
-          headers: { Authorization: `Bearer ${accessToken}` },
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
         },
       );
       const videoText = await videoRes.text();
-      const videoData = JSON.parse(videoText);
-      if (videoRes.ok && videoData.error?.code === "ok") {
-        const videos = videoData.data?.videos ?? [];
-        totalViews = videos.reduce((sum: number, v: { view_count?: number }) => sum + (v.view_count ?? 0), 0);
+
+      let videoData: Record<string, unknown>;
+      try { videoData = JSON.parse(videoText); } catch {
+        return {
+          followers,
+          totalViews: 0,
+          error: `TikTok video API: ${videoText.substring(0, 200)}`,
+        };
       }
-    } catch { /* video list may not have scope */ }
+
+      const videoErr = videoData.error as Record<string, string> | undefined;
+      if (!videoRes.ok || videoErr?.code !== "ok") {
+        const msg = videoErr?.message ?? videoErr?.code ?? `HTTP ${videoRes.status}`;
+        return {
+          followers,
+          totalViews: 0,
+          error: `TikTok video API: ${msg}. Confirm the account authorized the video.list scope.`,
+        };
+      }
+
+      const data = (videoData.data ?? {}) as {
+        videos?: Array<{ view_count?: number | string }>;
+        cursor?: number;
+        has_more?: boolean;
+      };
+      for (const video of data.videos ?? []) {
+        totalViews += Number(video.view_count ?? 0);
+      }
+
+      hasMore = data.has_more === true;
+      if (!hasMore) break;
+
+      if (typeof data.cursor !== "number" || seenCursors.has(data.cursor)) {
+        return {
+          followers,
+          totalViews: 0,
+          error: "TikTok video API: invalid pagination cursor; existing views were not overwritten.",
+        };
+      }
+      seenCursors.add(data.cursor);
+      cursor = data.cursor;
+    }
 
     return { followers, totalViews };
   } catch (err) {
