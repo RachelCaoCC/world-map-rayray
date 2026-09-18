@@ -104,13 +104,25 @@ export function CountryDashboard() {
               </div>
             </div>
 
-            <select
-              value={country.id}
-              onChange={(e) => navigate(`/country/${e.target.value}`)}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-accent/30 sm:w-auto"
-            >
-              <option value={country.id}>{country.name}</option>
-            </select>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              <button
+                type="button"
+                onClick={() => navigate(`/country/${country.id}/report?period=${periodDays}`)}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-dark"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 19V9m5 10V5m5 14v-7m5 7V3" />
+                </svg>
+                Country Report
+              </button>
+              <select
+                value={country.id}
+                onChange={(e) => navigate(`/country/${e.target.value}`)}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-accent/30 sm:w-auto"
+              >
+                <option value={country.id}>{country.name}</option>
+              </select>
+            </div>
           </div>
 
           <SummaryCards stats={periodStats} periodDays={periodDays} />
