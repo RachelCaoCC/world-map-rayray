@@ -260,15 +260,16 @@ export function WorldMap() {
                   event.stopPropagation();
                   if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
                   setSelectedCountry(country.id);
-                  setHoveredCountry(null);
-                  navigate(`/country/${country.id}`);
+                  setHoveredCountry(country);
+                  setHoveredMarkerCountryId(country.id);
                 }}
                 onKeyDown={(event) => {
                   if (event.key !== "Enter" && event.key !== " ") return;
                   event.preventDefault();
+                  if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
                   setSelectedCountry(country.id);
-                  setHoveredCountry(null);
-                  navigate(`/country/${country.id}`);
+                  setHoveredCountry(country);
+                  setHoveredMarkerCountryId(country.id);
                 }}
                 ref={(el) => {
                   if (el) markerRefs.current.set(country.id, el);
