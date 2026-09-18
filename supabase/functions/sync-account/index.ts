@@ -5,7 +5,7 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { getServiceClient } from "../_shared/supabase-client.ts";
-import { fetchPlatformStats, refreshFacebookToken, refreshYouTubeToken, refreshInstagramToken } from "../_shared/platform-apis.ts";
+import { fetchPlatformStats, refreshFacebookToken, refreshYouTubeToken, refreshInstagramToken, refreshTikTokToken } from "../_shared/platform-apis.ts";
 import { decryptToken, encryptToken } from "../_shared/crypto.ts";
 import { handleCors, corsHeaders } from "../_shared/cors.ts";
 
@@ -43,6 +43,12 @@ async function tryRefreshToken(conn: Record<string, unknown>, supabase: ReturnTy
       const clientId = Deno.env.get("YOUTUBE_CLIENT_ID") ?? "";
       const clientSecret = Deno.env.get("YOUTUBE_CLIENT_SECRET") ?? "";
       refreshed = await refreshYouTubeToken(refreshToken, clientId, clientSecret);
+      break;
+    }
+    case "tiktok": {
+      const clientKey = Deno.env.get("TIKTOK_APP_ID") ?? "";
+      const clientSecret = Deno.env.get("TIKTOK_APP_SECRET") ?? "";
+      refreshed = await refreshTikTokToken(refreshToken, clientKey, clientSecret);
       break;
     }
     default:
