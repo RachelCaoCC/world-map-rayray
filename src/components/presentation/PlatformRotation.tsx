@@ -16,6 +16,9 @@ export function PlatformRotation() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialPlatform = searchParams.get("platform") as PlatformKey | null;
+  const [metricMode, setMetricMode] = useState<"followers" | "both">(
+    searchParams.get("metrics") === "both" ? "both" : "followers",
+  );
 
   const getCountryById = useDashboardStore((s) => s.getCountryById);
   const getAggregatedStats = useDashboardStore((s) => s.getAggregatedStats);
@@ -113,6 +116,14 @@ export function PlatformRotation() {
   }
 
   const metricLabel = activePlatform === "youtube" ? "Subscribers" : "Followers";
+  const secondaryMetricLabel = activePlatform === "facebook"
+    ? "People Talking"
+    : activePlatform === "instagram"
+      ? "Media Published"
+      : "Total Views";
+  const followerValue = liveStat?.followers ?? platformStat?.followers ?? 0;
+  const secondaryMetricValue = liveStat?.totalViews ?? platformStat?.totalViews ?? 0;
+  const showSecondaryMetric = metricMode === "both" && secondaryMetricValue > 0;
   const showControls = displayPlatforms.length > 1;
 
   return (
@@ -176,11 +187,50 @@ export function PlatformRotation() {
           {/* Platform name */}
           <h1 className="presentation-title text-4xl font-bold tracking-tight text-white">{platformInfo.name}</h1>
 
-          {/* Metric label */}
-          <p className="presentation-metric text-lg uppercase tracking-widest text-white/50">{metricLabel}</p>
+          <div
+            className="flex rounded-xl border border-white/10 bg-white/5 p-1"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setMetricMode("followers")}
+              className={`rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
+                metricMode === "followers" ? "bg-white text-slate-900" : "text-white/55 hover:text-white"
+              }`}
+            >
+              Followers only
+            </button>
+            <button
+              type="button"
+              onClick={() => setMetricMode("both")}
+              className={`rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
+                metricMode === "both" ? "bg-white text-slate-900" : "text-white/55 hover:text-white"
+              }`}
+            >
+              Followers + Views
+            </button>
+          </div>
 
-          {/* Mechanical flip counter */}
-          <FlipCounter value={liveStat?.followers ?? platformStat?.followers ?? 0} large />
+          <div className={`grid w-full max-w-5xl items-start gap-8 ${
+            showSecondaryMetric ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
+          }`}>
+            <div className="flex min-w-0 flex-col items-center gap-4">
+              <p className="presentation-metric text-lg uppercase tracking-widest text-white/50">{metricLabel}</p>
+              <FlipCounter value={followerValue} large={!showSecondaryMetric} />
+            </div>
+            {showSecondaryMetric && (
+              <div className="flex min-w-0 flex-col items-center gap-4">
+                <p className="presentation-metric text-lg uppercase tracking-widest text-white/50">
+                  {secondaryMetricLabel}
+                </p>
+                <FlipCounter value={secondaryMetricValue} />
+              </div>
+            )}
+          </div>
+
+          {metricMode === "both" && secondaryMetricValue <= 0 && (
+            <p className="text-xs text-white/35">No secondary metric is available for this account.</p>
+          )}
         </motion.div>
       </AnimatePresence>
 
