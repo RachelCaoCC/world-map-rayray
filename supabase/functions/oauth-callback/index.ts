@@ -164,7 +164,7 @@ if (platform === "facebook" || platform === "instagram") {
     }
 
     if (platform === "tiktok") {
-      const apiUrl = "https://open.tiktokapis.com/v2/user/info/?fields=display_name,open_id,profile_deep_link";
+      const apiUrl = "https://open.tiktokapis.com/v2/user/info/?fields=display_name,username,open_id,profile_deep_link";
       const res = await fetch(apiUrl, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
@@ -177,7 +177,9 @@ if (platform === "facebook" || platform === "instagram") {
       if (!userData) return [];
       return [{
         id: userData.open_id,
-        name: userData.display_name ?? "Unknown Account",
+        name: userData.username
+          ? `${userData.display_name ?? "TikTok"} (@${userData.username})`
+          : userData.display_name ?? "Unknown Account",
         profileUrl: userData.profile_deep_link,
         type: "TikTok Account",
       }];
