@@ -1,19 +1,14 @@
 import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "../../hooks/useAuth";
 import { supabase } from "../../lib/supabase";
 
 export function TopBar({ showBack, backTo }: { showBack?: boolean; backTo?: string }) {
   const location = useLocation();
   const isHome = location.pathname === "/map";
   const isReport = location.pathname === "/report";
-  const { user } = useAuth();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
-
-  const userInitial = user?.email?.charAt(0).toUpperCase() ?? "A";
-  const userName = user?.email?.split("@")[0] ?? "Admin";
 
   return (
     <header className="min-h-14 bg-primary flex items-center justify-between gap-2 px-3 py-2 shadow-lg z-50 sm:h-16 sm:px-6">
@@ -83,27 +78,18 @@ export function TopBar({ showBack, backTo }: { showBack?: boolean; backTo?: stri
         </button>
 
         <div className="relative group">
-          <button className="flex items-center gap-2 cursor-pointer">
-            <div className="w-8 h-8 bg-accent-dark rounded-full flex items-center justify-center">
-              <span className="text-white text-xs font-medium">{userInitial}</span>
-            </div>
-            <div className="hidden sm:block">
-              <p className="text-white text-sm font-medium">{userName}</p>
-              <p className="text-white/60 text-xs">Administrator</p>
-            </div>
-            <svg className="hidden w-4 h-4 text-white/60 sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button className="flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-white transition-colors hover:bg-white/10">
+            <span>Admin</span>
+            <svg className="h-4 w-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
 
           {/* Dropdown */}
-          <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-xl border border-slate-200 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-            <div className="px-4 py-2 border-b border-slate-100">
-              <p className="text-xs text-slate-500 truncate">{user?.email}</p>
-            </div>
+          <div className="invisible absolute right-0 top-full z-50 mt-1 w-32 rounded-lg border border-slate-200 bg-white py-1 opacity-0 shadow-xl transition-all group-hover:visible group-hover:opacity-100">
             <button
               onClick={handleLogout}
-              className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 transition-colors"
+              className="w-full px-4 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-100"
             >
               Sign out
             </button>
