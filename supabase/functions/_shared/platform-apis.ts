@@ -9,6 +9,42 @@ export interface PlatformStats {
   error?: string;
 }
 
+const GRAPH_API = "https://graph.facebook.com/v24.0";
+
+type GraphPage<T> = {
+  data?: T[];
+  paging?: { next?: string };
+  error?: { message?: string };
+};
+
+async function fetchGraphJson<T>(url: string): Promise<T> {
+  const res = await fetch(url);
+  const text = await res.text();
+  let data: T & { error?: { message?: string } };
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(`Meta API returned invalid JSON: ${text.substring(0, 200)}`);
+  }
+  if (!res.ok || data.error) {
+    throw new Error(data.error?.message ?? `Meta API HTTP ${res.status}`);
+  }
+  return data;
+}
+
+async function fetchAllGraphPages<T>(initialUrl: string): Promise<T[]> {
+  const items: T[] = [];
+  let next: string | undefined = initialUrl;
+  // The cap prevents a malformed paging response from looping forever while
+  // still allowing up to 10,000 media objects at a page size of 100.
+  for (let page = 0; next && page < 100; page++) {
+    const result: GraphPage<T> = await fetchGraphJson<GraphPage<T>>(next);
+    items.push(...(result.data ?? []));
+    next = result.paging?.next;
+  }
+  return items;
+}
+
 // ─── Facebook Graph API ───
 // GET https://graph.facebook.com/v24.0/{page-id}?fields=followers_count,accessToken={token}
 
@@ -17,32 +53,29 @@ export async function fetchFacebookStats(
   pageId: string,
 ): Promise<PlatformStats | null> {
   try {
-    const url =
-      `https://graph.facebook.com/v24.0/${pageId}?fields=followers_count,fan_count,talking_about_count,name&access_token=${accessToken}`;
-    const res = await fetch(url);
-    const text = await res.text();
-    let data: Record<string, unknown>;
-    try { data = JSON.parse(text); } catch {
-      return { followers: 0, totalViews: 0, error: `Facebook API: ${text.substring(0, 200)}` };
-    }
-    if (!res.ok || data.error) {
-      const errObj = data.error as Record<string, string> | undefined;
-      const msg = errObj?.message ?? `HTTP ${res.status}`;
-      return { followers: 0, totalViews: 0, error: `Facebook API: ${msg}` };
-    }
+    const token = encodeURIComponent(accessToken);
+    const data = await fetchGraphJson<Record<string, unknown>>(
+      `${GRAPH_API}/${pageId}?fields=followers_count,fan_count,name&access_token=${token}`,
+    );
 
-    // Page Activity is available directly from the Page object and does not
-    // require crawling every post. Keep it in totalViews for the existing
-    // analytics schema; the UI labels Facebook's field accurately.
-    const pageActivity = Number(data.talking_about_count ?? 0);
+    // Facebook does not expose a Page-level lifetime view counter. Sum the
+    // lifetime views of every public Page video and follow every result page.
+    // The videos edge requires pages_read_engagement/read_insights.
+    const videos = await fetchAllGraphPages<{ views?: number | string }>(
+      `${GRAPH_API}/${pageId}/videos?fields=views&limit=100&access_token=${token}`,
+    );
+    const totalVideoViews = videos.reduce(
+      (sum, video) => sum + Number(video.views ?? 0),
+      0,
+    );
 
     return {
       followers: Number(data.followers_count ?? data.fan_count ?? 0),
-      totalViews: pageActivity,
+      totalViews: totalVideoViews,
       accountName: String(data.name ?? ""),
     };
   } catch (err) {
-    return { followers: 0, totalViews: 0, error: `Facebook fetch failed: ${String(err)}` };
+    return { followers: 0, totalViews: 0, error: `Facebook views fetch failed: ${String(err)}` };
   }
 }
 
@@ -55,29 +88,50 @@ export async function fetchInstagramStats(
   igUserId: string,
 ): Promise<PlatformStats | null> {
   try {
-    const url =
-      `https://graph.facebook.com/v24.0/${igUserId}?fields=followers_count,media_count,name,username&access_token=${accessToken}`;
-    const res = await fetch(url);
-    const text = await res.text();
-    let data: Record<string, unknown>;
-    try { data = JSON.parse(text); } catch {
-      return { followers: 0, totalViews: 0, error: `Instagram API: ${text.substring(0, 200)}` };
-    }
-    if (!res.ok || data.error) {
-      const errObj = data.error as Record<string, string> | undefined;
-      const msg = errObj?.message ?? `HTTP ${res.status}`;
-      return { followers: 0, totalViews: 0, error: `Instagram API: ${msg}` };
+    const token = encodeURIComponent(accessToken);
+    const data = await fetchGraphJson<Record<string, unknown>>(
+      `${GRAPH_API}/${igUserId}?fields=followers_count,media_count,name,username&access_token=${token}`,
+    );
+    const media = await fetchAllGraphPages<{ id: string; media_type?: string }>(
+      `${GRAPH_API}/${igUserId}/media?fields=id,media_type&limit=100&access_token=${token}`,
+    );
+
+    let totalViews = 0;
+    let successfulInsights = 0;
+    // Small batches avoid flooding Meta while keeping large accounts within
+    // the Edge Function execution window.
+    for (let offset = 0; offset < media.length; offset += 10) {
+      const batch = media.slice(offset, offset + 10);
+      const values = await Promise.all(batch.map(async (item) => {
+        for (const metric of ["views", "plays"]) {
+          try {
+            const insight = await fetchGraphJson<GraphPage<{ name?: string; values?: Array<{ value?: number }> }>>(
+              `${GRAPH_API}/${item.id}/insights?metric=${metric}&access_token=${token}`,
+            );
+            const value = Number(insight.data?.[0]?.values?.[0]?.value ?? 0);
+            successfulInsights++;
+            return value;
+          } catch {
+            // Metric availability differs by media type and Graph API age.
+            // Try the next real view metric; never substitute impressions.
+          }
+        }
+        return 0;
+      }));
+      totalViews += values.reduce((sum, value) => sum + value, 0);
     }
 
-    // Store media_count in totalViews for schema compatibility.
-    // The frontend labels this value as Media Published, never as views.
+    if (media.length > 0 && successfulInsights === 0) {
+      throw new Error("No media view insights were accessible. Reconnect the Instagram account with instagram_manage_insights.");
+    }
+
     return {
       followers: Number(data.followers_count ?? 0),
-      totalViews: Number(data.media_count ?? 0),
+      totalViews,
       accountName: String(data.username ?? data.name ?? ""),
     };
   } catch (err) {
-    return { followers: 0, totalViews: 0, error: `Instagram fetch failed: ${String(err)}` };
+    return { followers: 0, totalViews: 0, error: `Instagram views fetch failed: ${String(err)}` };
   }
 }
 
