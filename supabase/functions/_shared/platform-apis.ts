@@ -209,7 +209,10 @@ export async function fetchTikTokStats(
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ max_count: 100, ...(cursor !== undefined ? { cursor } : {}) }),
+          // TikTok Display API permits at most 20 videos per page. Continue
+          // following the returned cursor so lifetime views still include all
+          // public videos rather than only the first page.
+          body: JSON.stringify({ max_count: 20, ...(cursor !== undefined ? { cursor } : {}) }),
         },
       );
       const videoData = await videoRes.json() as {
