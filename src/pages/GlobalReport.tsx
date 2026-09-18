@@ -13,6 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { Layout } from "../components/layout/Layout";
+import { EditableNarrative } from "../components/report/EditableNarrative";
 import { useDashboardStore } from "../store/useStore";
 import { buildGlobalReportRows, downloadGlobalReport } from "../utils/globalReport";
 
@@ -104,6 +105,20 @@ export function GlobalReport() {
   const manualPriorityNames = manualPriorities
     .map((row) => `${row.countryName} ${PLATFORM_LABELS[row.platform] ?? row.platform}`)
     .join(", ");
+  const coverageNarrative =
+    `${rows.length} accounts cover ${platformData.length} platforms and ${markets} markets. The top three markets hold ${topThreeShare.toFixed(1)}% of all recorded followers, indicating${topThreeShare >= 70 ? " high concentration and a need to strengthen the long tail." : " a relatively balanced footprint with room to deepen smaller markets."}`;
+  const usaNarrative = usaMarket
+    ? `The United States records ${number(usaMarket.followers)} followers, equal to ${usaVsLeader?.toFixed(1)}% of the leading market, ${largestMarket?.name ?? "—"}.${usaVsLeader !== null && usaVsLeader < 50 ? " For a priority global market, this is a material coverage gap." : " Its relative position is healthy but should be monitored against market potential."}`
+    : "No United States account data is currently recorded. Add a connection or manual snapshot before evaluating this priority market.";
+  const leaderNarrative =
+    `The leading market contributes ${number(largestMarket?.followers ?? 0)} followers. Across the full portfolio, ${largestPlatform?.name ?? "—"} contributes ${number(largestPlatform?.followers ?? 0)}. These are the clearest benchmarks for content, investment and account operations in lower-performing markets.`;
+  const riskNarrative =
+    `${zombieAccounts.length > 0 ? `There are ${zombieAccounts.length} near-dormant accounts at 10 followers or fewer: ${zombieNames}.` : "No accounts currently fall below the 10-follower risk threshold."} Manual snapshots represent ${manualShare.toFixed(1)}% of followers and should be replaced with API connections where possible.`;
+  const actionsNarrative = [
+    `1. Connect the largest manual accounts first${manualPriorityNames ? `: ${manualPriorityNames}` : ""}.`,
+    "2. Review ownership, content cadence and purpose for all accounts below 10 followers.",
+    `3. Use ${largestMarket?.name ?? "the leading market"} and ${largestPlatform?.name ?? "the leading platform"} as operating benchmarks.`,
+  ].join("\n");
 
   return (
     <Layout showBack backTo="/map">
@@ -163,64 +178,35 @@ export function GlobalReport() {
               <article className="rounded-xl border border-slate-200 border-l-4 border-l-blue-500 bg-white p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Coverage</p>
                 <h3 className="mt-1 font-semibold text-slate-900">Breadth established, depth remains uneven</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  <strong>{rows.length} accounts</strong> cover <strong>{platformData.length} platforms</strong> and{" "}
-                  <strong>{markets} markets</strong>. The top three markets hold{" "}
-                  <strong>{topThreeShare.toFixed(1)}%</strong> of all recorded followers, indicating
-                  {topThreeShare >= 70 ? " high concentration and a need to strengthen the long tail." : " a relatively balanced footprint with room to deepen smaller markets."}
-                </p>
+                <EditableNarrative storageKey="global:coverage" defaultValue={coverageNarrative} />
               </article>
 
               <article className="rounded-xl border border-slate-200 border-l-4 border-l-rose-500 bg-white p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-wide text-rose-600">Priority-market risk</p>
                 <h3 className="mt-1 font-semibold text-slate-900">United States requires focused investment</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  {usaMarket ? (
-                    <>
-                      The United States records <strong>{number(usaMarket.followers)} followers</strong>, equal to{" "}
-                      <strong>{usaVsLeader?.toFixed(1)}%</strong> of the leading market, {largestMarket?.name}.
-                      {usaVsLeader !== null && usaVsLeader < 50
-                        ? " For a priority global market, this is a material coverage gap."
-                        : " Its relative position is healthy but should be monitored against market potential."}
-                    </>
-                  ) : (
-                    <>No United States account data is currently recorded. Add a connection or manual snapshot before evaluating this priority market.</>
-                  )}
-                </p>
+                <EditableNarrative storageKey="global:usa-risk" defaultValue={usaNarrative} />
               </article>
 
               <article className="rounded-xl border border-slate-200 border-l-4 border-l-emerald-500 bg-white p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">Leaders</p>
                 <h3 className="mt-1 font-semibold text-slate-900">{largestMarket?.name ?? "—"} leads; {largestPlatform?.name ?? "—"} is the strongest platform</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  The leading market contributes <strong>{number(largestMarket?.followers ?? 0)}</strong> followers.
-                  Across the full portfolio, <strong>{largestPlatform?.name ?? "—"}</strong> contributes{" "}
-                  <strong>{number(largestPlatform?.followers ?? 0)}</strong>. These are the clearest benchmarks for content,
-                  investment and account operations in lower-performing markets.
-                </p>
+                <EditableNarrative storageKey="global:leaders" defaultValue={leaderNarrative} />
               </article>
 
               <article className="rounded-xl border border-slate-200 border-l-4 border-l-amber-500 bg-white p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-wide text-amber-600">Data and account risk</p>
                 <h3 className="mt-1 font-semibold text-slate-900">Low-scale accounts and manual-data dependency</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  {zombieAccounts.length > 0 ? (
-                    <>There are <strong>{zombieAccounts.length} near-dormant accounts</strong> at 10 followers or fewer: {zombieNames}.</>
-                  ) : (
-                    <>No accounts currently fall below the 10-follower risk threshold.</>
-                  )}{" "}
-                  Manual snapshots represent <strong>{manualShare.toFixed(1)}%</strong> of followers and should be replaced with API connections where possible.
-                </p>
+                <EditableNarrative storageKey="global:data-risk" defaultValue={riskNarrative} />
               </article>
             </div>
 
             <div className="mt-4 rounded-xl border border-violet-100 bg-violet-50/70 p-5">
               <h3 className="text-sm font-semibold text-violet-900">Recommended next actions</h3>
-              <ol className="mt-3 grid gap-3 text-sm text-slate-700 md:grid-cols-3">
-                <li><strong>1.</strong> Connect the largest manual accounts first{manualPriorityNames ? `: ${manualPriorityNames}` : ""}.</li>
-                <li><strong>2.</strong> Review ownership, content cadence and purpose for all accounts below 10 followers.</li>
-                <li><strong>3.</strong> Use {largestMarket?.name ?? "the leading market"} and {largestPlatform?.name ?? "the leading platform"} as operating benchmarks.</li>
-              </ol>
+              <EditableNarrative
+                storageKey="global:recommended-actions"
+                defaultValue={actionsNarrative}
+                className="text-slate-700"
+              />
             </div>
           </section>
 
