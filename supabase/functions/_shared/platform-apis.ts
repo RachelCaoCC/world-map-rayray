@@ -246,5 +246,35 @@ export async function refreshYouTubeToken(
   }
 }
 
+export async function refreshTikTokToken(
+  refreshToken: string,
+  clientKey: string,
+  clientSecret: string,
+): Promise<TokenRefreshResult | null> {
+  try {
+    const res = await fetch("https://open.tiktokapis.com/v2/oauth/token/", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_key: clientKey,
+        client_secret: clientSecret,
+        grant_type: "refresh_token",
+        refresh_token: refreshToken,
+      }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.access_token) return null;
+    return {
+      accessToken: data.access_token,
+      // TikTok may rotate the refresh token; always persist the latest value.
+      refreshToken: data.refresh_token ?? refreshToken,
+      expiresAt: new Date(Date.now() + Number(data.expires_in ?? 86400) * 1000).toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
 // Instagram uses the same Meta OAuth — same refresh as Facebook
 export const refreshInstagramToken = refreshFacebookToken;
