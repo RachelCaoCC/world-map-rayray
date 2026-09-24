@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { Layout } from "../components/layout/Layout";
 import { EditableNarrative } from "../components/report/EditableNarrative";
+import { AskReportAI } from "../components/report/AskReportAI";
 import { useDashboardStore } from "../store/useStore";
 import { buildGlobalReportRows, downloadGlobalReport } from "../utils/globalReport";
 
@@ -149,6 +150,8 @@ export function GlobalReport() {
               </button>
             </div>
           </header>
+
+          <AskReportAI context={{ scope: "global", rows: rows.map((row) => ({ countryId: row.countryId, countryName: row.countryName, platform: row.platform, accountName: row.accountName, followers: row.followers, source: row.source, lastUpdated: row.lastUpdated })), summary: { totalFollowers, markets, apiAccounts, manualAccounts, topThreeShare, manualShare } }} />
 
           <section className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
