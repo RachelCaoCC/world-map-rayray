@@ -334,11 +334,13 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
 
   connectAccount: async (countryId, platform, account, accessToken, refreshToken, expiresIn) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || session.user.app_metadata?.role !== "admin") throw new Error("Admin sign-in required");
     const res = await fetch(`${FUNC_URL}/connect-account`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({
         countryId,
@@ -378,11 +380,13 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
 
   reconnectAccount: async (connectionId) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || session.user.app_metadata?.role !== "admin") throw new Error("Admin sign-in required");
     const res = await fetch(`${FUNC_URL}/reconnect-account`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({ connectionId }),
     });
@@ -394,11 +398,13 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
 
   triggerAccountSync: async (connectionId) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || session.user.app_metadata?.role !== "admin") throw new Error("Admin sign-in required");
     const res = await fetch(`${FUNC_URL}/sync-account`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({ connectionId }),
     });
