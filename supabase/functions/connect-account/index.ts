@@ -24,6 +24,7 @@ serve(async (req: Request) => {
       accessToken,
       refreshToken,
       expiresIn,
+      replaceExisting,
     } = await req.json();
 
     if (!countryId || !platform || !externalAccountId || !accessToken) {
@@ -49,10 +50,28 @@ serve(async (req: Request) => {
       .single();
 
     if (existing) {
-      return new Response(
-        JSON.stringify({ error: "Account already connected", connectionId: existing.id }),
-        { status: 409, headers },
-      );
+      if (replaceExisting !== existing.id) {
+        return new Response(JSON.stringify({ error: "This account is already connected. Use Reconnect to refresh its authorization.", connectionId: existing.id }), { status: 409, headers });
+      }
+      const { error: updateErr } = await supabase.from("platform_connections").update({
+        account_name: accountName ?? externalAccountId,
+        username: username ?? null,
+        profile_url: profileUrl ?? null,
+        access_token: encryptToken(accessToken),
+        refresh_token: refreshToken ? encryptToken(refreshToken) : null,
+        token_expires_at: expiresIn ? new Date(Date.now() + Number(expiresIn) * 1000).toISOString() : null,
+        last_synced_at: now,
+        status: "connected",
+      }).eq("id", existing.id);
+      if (updateErr) return new Response(JSON.stringify({ error: updateErr.message }), { status: 500, headers });
+      const stats = await fetchPlatformStats(platform, accessToken, externalAccountId);
+      if (stats && !stats.error) await supabase.from("account_stats").insert({
+        connection_id: existing.id, followers: stats.followers, total_views: stats.totalViews,
+        follower_growth_pct_30d: 0, view_growth_pct_30d: 0, synced_at: now,
+      });
+      await supabase.from("audit_log").insert({ action: "reconnect", actor: user.email ?? "Admin",
+        country_id: countryId, platform, details: `Reauthorized "${accountName}"` });
+      return new Response(JSON.stringify({ ok: true, connectionId: existing.id, reconnected: true }), { headers });
     }
 
     const { data: conn, error: insertErr } = await supabase
