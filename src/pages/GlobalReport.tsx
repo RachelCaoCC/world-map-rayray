@@ -15,6 +15,7 @@ import {
 import { Layout } from "../components/layout/Layout";
 import { EditableNarrative } from "../components/report/EditableNarrative";
 import { AskReportAI } from "../components/report/AskReportAI";
+import { usePolling } from "../hooks/usePolling";
 import { useDashboardStore } from "../store/useStore";
 import { buildGlobalReportRows, downloadGlobalReport } from "../utils/globalReport";
 
@@ -39,6 +40,7 @@ const SOURCE_COLORS = ["#3b82f6", "#f59e0b"];
 const number = (value: number) => value.toLocaleString("en-US");
 
 export function GlobalReport() {
+  usePolling(15000);
   const navigate = useNavigate();
   const countries = useDashboardStore((state) => state.countries);
   const connections = useDashboardStore((state) => state.platformConnections);
