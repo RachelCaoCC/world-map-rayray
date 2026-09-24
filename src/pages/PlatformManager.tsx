@@ -54,6 +54,7 @@ export function PlatformManager() {
   // Disconnect confirm
   const [disconnectTarget, setDisconnectTarget] = useState<{ connectionId: string; accountName: string } | null>(null);
   const [disconnectError, setDisconnectError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Loading states for sync/disconnect per connection
   const [syncingId, setSyncingId] = useState<string | null>(null);
@@ -113,7 +114,7 @@ export function PlatformManager() {
       const hash = window.location.hash;
       if (!hash.startsWith("#oauth=")) return;
       const encoded = hash.slice(7);
-      window.location.hash = "";
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
 
       // Restore wizard state from sessionStorage
       const saved = sessionStorage.getItem("oauth_wizard");
@@ -144,7 +145,8 @@ export function PlatformManager() {
           );
           setWizardStep("account");
         }
-      } catch { /* ignore parse errors */ }
+      } catch { setWizardError("Could not restore the account authorization. Please retry."); setWizardStep("platform"); }
+
     }
 
     handleHash();
@@ -201,6 +203,7 @@ export function PlatformManager() {
     setWizardConnecting(false);
     setWizardTokens(null);
     setWizardError(null);
+    sessionStorage.removeItem("oauth_reconnect_id");
   };
 
   const goOAuth = async (platform?: PlatformKey) => {
@@ -276,7 +279,8 @@ export function PlatformManager() {
   return (
     <Layout showBack backTo="/">
       <div className="h-full overflow-y-auto">
-        <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="max-w-7xl mx-auto px-3 py-4 sm:px-6 sm:py-6">
+          {actionError && <div role="alert" className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">{actionError} <button className="ml-2 underline" onClick={() => setActionError(null)}>Dismiss</button></div>}
 
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
@@ -467,7 +471,7 @@ export function PlatformManager() {
                                       </>
                                     )}
                                     {conn.status === "token_expired" && (
-                                      <button onClick={() => reconnectAccount(conn.id)}
+                                      <button onClick={async () => { setActionError(null); try { await reconnectAccount(conn.id); } catch (e) { setActionError(e instanceof Error ? e.message : String(e)); } }}
                                         className="px-2.5 py-1 text-xs font-medium bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 transition-colors">Reconnect</button>
                                     )}
                                     {conn.status === "error" && (
@@ -507,9 +511,9 @@ export function PlatformManager() {
 
       {/* ─── Connect Account Wizard ─── */}
       {wizardOpen && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center">
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-2 sm:p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => !wizardConnecting && setWizardOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[95dvh] flex flex-col overflow-hidden">
 
             <div className="px-6 py-4 border-b border-slate-100">
               <h3 className="text-lg font-semibold text-slate-800">Connect Account</h3>
@@ -527,7 +531,7 @@ export function PlatformManager() {
               ))}
             </div>
 
-            <div className="p-6 max-h-[60vh] overflow-y-auto">
+            <div className="p-4 sm:p-6 min-h-0 flex-1 overflow-y-auto">
               {/* Step 1: Country */}
               {wizardStep === "country" && (
                 <div>
@@ -648,6 +652,7 @@ export function PlatformManager() {
                 </div>
               )}
 
+              {wizardError && wizardStep !== "country" && wizardStep !== "platform" && <p role="alert" className="mb-3 rounded-lg bg-red-50 p-3 text-xs text-red-700">{wizardError}</p>}
               {/* Step 5: Confirm */}
               {wizardStep === "confirm" && wizardSelectedAccount && (
                 <div>
