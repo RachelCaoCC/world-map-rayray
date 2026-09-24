@@ -352,10 +352,12 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         accessToken,
         refreshToken,
         expiresIn,
+        replaceExisting: sessionStorage.getItem("oauth_reconnect_id") || undefined,
       }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error ?? "Connect failed");
+    if (!res.ok || !data.ok) throw new Error(data.error ?? `Connect failed (${res.status})`);
+    sessionStorage.removeItem("oauth_reconnect_id");
 
     // Refresh local state
     await get().fetchAll();
@@ -391,9 +393,16 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       body: JSON.stringify({ connectionId }),
     });
     const data = await res.json();
+    if (!res.ok) throw new Error(data.error ?? `Reconnect failed (${res.status})`);
     if (data.oauthUrl) {
-      window.open(data.oauthUrl, "_blank", "width=600,height=700");
+      const existing = get().platformConnections.find(c => c.id === connectionId);
+      if (!existing) throw new Error("Account not found. Refresh the page and try again.");
+      sessionStorage.setItem("oauth_wizard", JSON.stringify({ country: existing.countryId, platform: existing.platform }));
+      sessionStorage.setItem("oauth_reconnect_id", connectionId);
+      window.location.assign(data.oauthUrl);
+      return;
     }
+    if (!data.ok) throw new Error(data.error ?? "Reconnect failed");
     await get().fetchAll();
   },
 
