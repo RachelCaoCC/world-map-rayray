@@ -4,6 +4,7 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { handleCors, corsHeaders } from "../_shared/cors.ts";
+import { getServiceClient } from "../_shared/supabase-client.ts";
 
 const OAUTH_URLS: Record<string, string> = {
   facebook: "https://www.facebook.com/dialog/oauth",
@@ -25,6 +26,11 @@ serve(async (req: Request) => {
 
   const headers = corsHeaders(req);
   try {
+    const supabase = getServiceClient();
+    const authorization = req.headers.get("Authorization");
+    if (!authorization?.startsWith("Bearer ")) return new Response(JSON.stringify({ error: "Admin sign-in required" }), { status: 401, headers });
+    const { data: { user }, error: authError } = await supabase.auth.getUser(authorization.slice(7));
+    if (authError || user?.app_metadata?.role !== "admin") return new Response(JSON.stringify({ error: "Admin access required" }), { status: 403, headers });
     const { platform, countryId } = await req.json();
     if (!platform || !countryId) {
       return new Response(JSON.stringify({ error: "platform and countryId required" }), { status: 400, headers });
