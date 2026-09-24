@@ -22,7 +22,7 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const isAdmin = user?.app_metadata?.role === "admin" || user?.user_metadata?.role === "admin";
+  const isAdmin = user?.app_metadata?.role === "admin";
 
   return { user, loading, isAdmin };
 }
