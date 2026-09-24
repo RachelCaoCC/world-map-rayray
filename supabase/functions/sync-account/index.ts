@@ -88,6 +88,10 @@ serve(async (req: Request) => {
     }
 
     const supabase = getServiceClient();
+    const authorization = req.headers.get("Authorization");
+    if (!authorization?.startsWith("Bearer ")) return new Response(JSON.stringify({ error: "Admin sign-in required" }), { status: 401, headers });
+    const { data: { user }, error: authError } = await supabase.auth.getUser(authorization.slice(7));
+    if (authError || user?.app_metadata?.role !== "admin") return new Response(JSON.stringify({ error: "Admin access required" }), { status: 403, headers });
 
     const { data: conn, error: connErr } = await supabase
       .from("platform_connections")
