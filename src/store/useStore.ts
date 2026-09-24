@@ -196,17 +196,23 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
   fetchConnections: async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    // Guests see only non-secret connection metadata, admins use the protected endpoint.
+    let rows: Record<string, unknown>[] = [];
+    if (session?.user.app_metadata?.role === "admin") {
+      const res = await fetch(`${FUNC_URL}/get-accounts`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!res.ok) { console.error("fetchConnections:", res.status); return; }
+      const result = await res.json();
+      if (!result.ok) { console.error("fetchConnections:", result.error); return; }
+      rows = result.connections ?? [];
+    } else {
+      const { data, error } = await supabase.from("public_platform_connections").select("*");
+      if (error) { console.error("fetchPublicConnections:", error); return; }
+      rows = data ?? [];
+    }
 
-    const res = await fetch(`${FUNC_URL}/get-accounts`, {
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-      },
-    });
-    const result = await res.json();
-    if (!result.ok) { console.error("fetchConnections:", result.error); return; }
-
-    const connections: PlatformConnection[] = (result.connections ?? []).map((row: Record<string, unknown>) => ({
+    const connections: PlatformConnection[] = rows.map((row: Record<string, unknown>) => ({
       id: row.id as string,
       countryId: row.country_id as string,
       platform: row.platform as PlatformKey,
