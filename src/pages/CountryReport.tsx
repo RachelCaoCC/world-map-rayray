@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { Layout } from "../components/layout/Layout";
 import { EditableNarrative } from "../components/report/EditableNarrative";
+import { AskReportAI } from "../components/report/AskReportAI";
 import { PLATFORM_COLORS, PLATFORM_INFO } from "../data/mockData";
 import { useDashboardStore } from "../store/useStore";
 import type { PlatformKey, TrendPoint } from "../types";
@@ -145,6 +146,8 @@ export function CountryReport() {
               </button>
             </div>
           </header>
+
+          <AskReportAI context={{ scope: "country", countryId: country.id, countryName: country.name, periodDays, rows: stats.map((stat) => ({ platform: stat.platform, followers: stat.followers, secondaryMetric: stat.totalViews, followerGrowthPct: stat.followerGrowth, metricGrowthPct: stat.metricGrowth, accountCount: stat.accountCount, lastUpdated: stat.lastUpdated })), summary: { totalFollowers, totalViews, periodDays } }} />
 
           <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[
