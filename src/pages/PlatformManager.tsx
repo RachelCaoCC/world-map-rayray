@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useDashboardStore } from "../store/useStore";
+import { usePolling } from "../hooks/usePolling";
 import { Layout } from "../components/layout/Layout";
 import { PLATFORM_INFO } from "../data/mockData";
 import { OAUTH_CONFIGS, tokenExpiryWarning } from "../data/oauthConfig";
@@ -20,6 +21,7 @@ const FUNC_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 type WizardStep = "country" | "platform" | "oauth" | "account" | "confirm";
 
 export function PlatformManager() {
+  usePolling(15000);
   const countries = useDashboardStore((s) => s.countries);
   const fetchCountries = useDashboardStore((s) => s.fetchCountries);
   const platformConnections = useDashboardStore((s) => s.platformConnections);
