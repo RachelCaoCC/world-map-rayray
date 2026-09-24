@@ -26,7 +26,7 @@ serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "Invalid session. Please sign in again." }), { status: 401, headers });
     }
 
-    const isAdmin = user.app_metadata?.role === "admin" || user.user_metadata?.role === "admin";
+    const isAdmin = user.app_metadata?.role === "admin";
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Admin access required" }), { status: 403, headers });
     }
