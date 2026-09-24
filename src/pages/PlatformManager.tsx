@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useDashboardStore } from "../store/useStore";
 import { usePolling } from "../hooks/usePolling";
+import { supabase } from "../lib/supabase";
 import { Layout } from "../components/layout/Layout";
 import { PLATFORM_INFO } from "../data/mockData";
 import { OAUTH_CONFIGS, tokenExpiryWarning } from "../data/oauthConfig";
@@ -210,12 +211,14 @@ export function PlatformManager() {
     const country = wizardCountry;
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session || session.user.app_metadata?.role !== "admin") throw new Error("Admin sign-in required");
       const res = await fetch(`${FUNC_URL}/get-oauth-url`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           platform: plat,
