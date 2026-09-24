@@ -15,6 +15,7 @@ import {
 import { Layout } from "../components/layout/Layout";
 import { EditableNarrative } from "../components/report/EditableNarrative";
 import { AskReportAI } from "../components/report/AskReportAI";
+import { usePolling } from "../hooks/usePolling";
 import { PLATFORM_COLORS, PLATFORM_INFO } from "../data/mockData";
 import { useDashboardStore } from "../store/useStore";
 import type { PlatformKey, TrendPoint } from "../types";
@@ -51,6 +52,7 @@ const formatNumber = (value: number) => value.toLocaleString("en-US");
 const formatGrowth = (value: number) => `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`;
 
 export function CountryReport() {
+  usePolling(15000);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
