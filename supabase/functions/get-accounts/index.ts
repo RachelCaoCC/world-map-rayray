@@ -29,7 +29,7 @@ serve(async (req: Request) => {
     }
 
     // Check admin role
-    const isAdmin = user.app_metadata?.role === "admin" || user.user_metadata?.role === "admin";
+    const isAdmin = user.app_metadata?.role === "admin";
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Admin access required" }), { status: 403, headers });
     }
@@ -37,7 +37,7 @@ serve(async (req: Request) => {
     // Fetch connections
     const { data: connections, error } = await supabase
       .from("platform_connections")
-      .select("*")
+      .select("id,country_id,platform,external_account_id,account_name,username,profile_url,status,token_expires_at,last_synced_at,connected_by,connected_at")
       .order("connected_at", { ascending: false });
 
     if (error) {
