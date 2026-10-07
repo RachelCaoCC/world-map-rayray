@@ -216,13 +216,6 @@ export function PlatformRotation() {
         />
       </div>
 
-      <div className="presentation-brand absolute left-8 top-6 z-30 flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent">
-          <span className="text-sm font-bold text-white">C</span>
-        </div>
-        <span className="text-sm font-medium text-white/60">Count</span>
-      </div>
-
       <div
         className="presentation-actions absolute right-8 top-5 z-30 flex items-center gap-2 sm:gap-4"
         onClick={(event) => event.stopPropagation()}
@@ -244,14 +237,15 @@ export function PlatformRotation() {
         <button
           type="button"
           onClick={exitPresentation}
-          aria-label="Exit presentation mode"
-          title="Exit presentation mode (Esc)"
+          aria-label="Enter world map"
+          title="Enter World Map (Esc)"
           className="flex items-center gap-2 rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/20 hover:text-white"
         >
           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <path d="m15 18-6-6 6-6" />
+            <circle cx="12" cy="12" r="9" />
+            <path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" />
           </svg>
-          <span className="hidden sm:inline">Exit</span>
+          <span className="hidden sm:inline">Enter World Map</span>
         </button>
       </div>
 
@@ -326,7 +320,7 @@ export function PlatformRotation() {
 
       {showControls ? (
         <div className="presentation-hint absolute bottom-20 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs text-white/20">
-          ← → to cycle · space to pause · Esc to exit · click to advance
+          ← → to cycle · space to pause · Esc to world map · click to advance
         </div>
       ) : null}
 
