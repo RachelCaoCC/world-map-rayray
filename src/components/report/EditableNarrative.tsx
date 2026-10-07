@@ -4,6 +4,7 @@ interface EditableNarrativeProps {
   storageKey: string;
   defaultValue: string;
   className?: string;
+  language?: "en" | "zh";
 }
 
 const STORAGE_PREFIX = "world-map-report:v1:";
@@ -21,7 +22,9 @@ export function EditableNarrative({
   storageKey,
   defaultValue,
   className = "",
+  language = "en",
 }: EditableNarrativeProps) {
+  const zh = language === "zh";
   const [value, setValue] = useState(() => readSavedValue(storageKey, defaultValue));
   const [draft, setDraft] = useState(value);
   const [isEditing, setIsEditing] = useState(false);
@@ -63,7 +66,7 @@ export function EditableNarrative({
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           rows={6}
-          aria-label="Edit report commentary"
+          aria-label={zh ? "编辑报告评论" : "Edit report commentary"}
           className={`min-h-36 w-full resize-y rounded-lg border border-blue-300 bg-white p-3 text-sm leading-6 text-slate-700 outline-none ring-blue-100 focus:ring-4 print:hidden ${className}`}
         />
         <p className={`hidden whitespace-pre-wrap text-sm leading-6 text-slate-600 print:block ${className}`}>
