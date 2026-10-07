@@ -78,7 +78,7 @@ export function EditableNarrative({
             onClick={save}
             className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
           >
-            Save comment
+            {zh ? "保存评论" : "Save comment"}
           </button>
           <button
             type="button"
@@ -88,14 +88,14 @@ export function EditableNarrative({
             }}
             className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
           >
-            Cancel
+            {zh ? "取消" : "Cancel"}
           </button>
           <button
             type="button"
             onClick={reset}
             className="rounded-md px-3 py-1.5 text-xs font-semibold text-slate-400 hover:bg-slate-100 hover:text-slate-600"
           >
-            Restore automatic analysis
+            {zh ? "恢复自动分析" : "Restore automatic analysis"}
           </button>
         </div>
       </div>
@@ -114,7 +114,7 @@ export function EditableNarrative({
           }}
           className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
         >
-          Edit comment
+          {zh ? "编辑评论" : "Edit comment"}
         </button>
         {value !== defaultValue && (
           <button
@@ -122,7 +122,7 @@ export function EditableNarrative({
             onClick={reset}
             className="text-xs font-semibold text-slate-400 hover:text-slate-600 hover:underline"
           >
-            Reset
+            {zh ? "重置" : "Reset"}
           </button>
         )}
       </div>
