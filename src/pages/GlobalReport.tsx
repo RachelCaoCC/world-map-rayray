@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BarChart,
@@ -42,6 +42,9 @@ const number = (value: number) => value.toLocaleString("en-US");
 export function GlobalReport() {
   usePolling(15000);
   const navigate = useNavigate();
+  const [language, setLanguage] = useState<"en" | "zh">("en");
+  const zh = language === "zh";
+  const tr = (en: string, cn: string) => zh ? cn : en;
   const countries = useDashboardStore((state) => state.countries);
   const connections = useDashboardStore((state) => state.platformConnections);
   const accountStats = useDashboardStore((state) => state.accountStats);
@@ -108,16 +111,27 @@ export function GlobalReport() {
   const manualPriorityNames = manualPriorities
     .map((row) => `${row.countryName} ${PLATFORM_LABELS[row.platform] ?? row.platform}`)
     .join(", ");
-  const coverageNarrative =
-    `${rows.length} accounts cover ${platformData.length} platforms and ${markets} markets. The top three markets hold ${topThreeShare.toFixed(1)}% of all recorded followers, indicating${topThreeShare >= 70 ? " high concentration and a need to strengthen the long tail." : " a relatively balanced footprint with room to deepen smaller markets."}`;
-  const usaNarrative = usaMarket
-    ? `The United States records ${number(usaMarket.followers)} followers, equal to ${usaVsLeader?.toFixed(1)}% of the leading market, ${largestMarket?.name ?? "—"}.${usaVsLeader !== null && usaVsLeader < 50 ? " For a priority global market, this is a material coverage gap." : " Its relative position is healthy but should be monitored against market potential."}`
-    : "No United States account data is currently recorded. Add a connection or manual snapshot before evaluating this priority market.";
-  const leaderNarrative =
-    `The leading market contributes ${number(largestMarket?.followers ?? 0)} followers. Across the full portfolio, ${largestPlatform?.name ?? "—"} contributes ${number(largestPlatform?.followers ?? 0)}. These are the clearest benchmarks for content, investment and account operations in lower-performing markets.`;
-  const riskNarrative =
-    `${zombieAccounts.length > 0 ? `There are ${zombieAccounts.length} near-dormant accounts at 10 followers or fewer: ${zombieNames}.` : "No accounts currently fall below the 10-follower risk threshold."} Manual snapshots represent ${manualShare.toFixed(1)}% of followers and should be replaced with API connections where possible.`;
-  const actionsNarrative = [
+  const coverageNarrative = zh
+    ? `${rows.length} 个账号覆盖 ${platformData.length} 个平台和 ${markets} 个市场。前三大市场占全部已记录粉丝的 ${topThreeShare.toFixed(1)}%，${topThreeShare >= 70 ? "集中度较高，建议加强长尾市场建设。" : "整体分布相对均衡，但较小市场仍有进一步深化空间。"}`
+    : `${rows.length} accounts cover ${platformData.length} platforms and ${markets} markets. The top three markets hold ${topThreeShare.toFixed(1)}% of all recorded followers, indicating${topThreeShare >= 70 ? " high concentration and a need to strengthen the long tail." : " a relatively balanced footprint with room to deepen smaller markets."}`;
+  const usaNarrative = zh
+    ? usaMarket
+      ? `美国目前记录 ${number(usaMarket.followers)} 名粉丝，相当于领先市场 ${largestMarket?.name ?? "—"} 的 ${usaVsLeader?.toFixed(1)}%。${usaVsLeader !== null && usaVsLeader < 50 ? "对于一个全球重点市场而言，这仍是明显的覆盖缺口。" : "其相对位置较健康，但仍应结合市场潜力持续监测。"}`
+      : "目前没有记录美国账号数据。在评估该重点市场前，请先添加 API 连接或手动快照。"
+    : usaMarket
+      ? `The United States records ${number(usaMarket.followers)} followers, equal to ${usaVsLeader?.toFixed(1)}% of the leading market, ${largestMarket?.name ?? "—"}.${usaVsLeader !== null && usaVsLeader < 50 ? " For a priority global market, this is a material coverage gap." : " Its relative position is healthy but should be monitored against market potential."}`
+      : "No United States account data is currently recorded. Add a connection or manual snapshot before evaluating this priority market.";
+  const leaderNarrative = zh
+    ? `领先市场贡献 ${number(largestMarket?.followers ?? 0)} 名粉丝。整个账号组合中，${largestPlatform?.name ?? "—"} 贡献 ${number(largestPlatform?.followers ?? 0)} 名粉丝。这两项可作为较低表现市场在内容、投入和账号运营方面的主要基准。`
+    : `The leading market contributes ${number(largestMarket?.followers ?? 0)} followers. Across the full portfolio, ${largestPlatform?.name ?? "—"} contributes ${number(largestPlatform?.followers ?? 0)}. These are the clearest benchmarks for content, investment and account operations in lower-performing markets.`;
+  const riskNarrative = zh
+    ? `${zombieAccounts.length > 0 ? `目前有 ${zombieAccounts.length} 个近乎停滞的账号，粉丝数不超过 10：${zombieNames}。` : "目前没有账号低于 10 粉丝的风险阈值。"} 手动快照占总粉丝的 ${manualShare.toFixed(1)}%，应尽可能替换为 API 连接。`
+    : `${zombieAccounts.length > 0 ? `There are ${zombieAccounts.length} near-dormant accounts at 10 followers or fewer: ${zombieNames}.` : "No accounts currently fall below the 10-follower risk threshold."} Manual snapshots represent ${manualShare.toFixed(1)}% of followers and should be replaced with API connections where possible.`;
+  const actionsNarrative = zh ? [
+    `1. 优先连接粉丝规模最大的手动账号${manualPriorityNames ? `：${manualPriorityNames}` : ""}。`,
+    "2. 复盘所有低于 10 粉丝账号的负责人、内容发布频率和账号定位。",
+    `3. 以 ${largestMarket?.name ?? "领先市场"} 和 ${largestPlatform?.name ?? "领先平台"} 作为运营基准。`,
+  ].join("\n") : [
     `1. Connect the largest manual accounts first${manualPriorityNames ? `: ${manualPriorityNames}` : ""}.`,
     "2. Review ownership, content cadence and purpose for all accounts below 10 followers.",
     `3. Use ${largestMarket?.name ?? "the leading market"} and ${largestPlatform?.name ?? "the leading platform"} as operating benchmarks.`,
@@ -129,13 +143,17 @@ export function GlobalReport() {
         <main className="global-report-content mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-6">
           <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Global analysis</p>
-              <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">Global Social Media Report</h1>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">{tr("Global analysis", "全球分析")}</p>
+              <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">{tr("Global Social Media Report", "全球社交媒体报告")}</h1>
               <p className="mt-2 max-w-2xl text-sm text-slate-500">
-                Connected API data is always prioritised. Manual snapshots fill only unconnected country-platform gaps.
+                {tr("Connected API data is always prioritised. Manual snapshots fill only unconnected country-platform gaps.", "优先使用已连接的 API 数据；手动快照仅用于补充尚未连接的国家/地区与平台数据缺口。")}
               </p>
             </div>
             <div className="grid w-full grid-cols-2 gap-2 print:hidden sm:flex sm:w-auto">
+              <div className="col-span-2 inline-flex overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm sm:col-span-1">
+                <button type="button" onClick={() => setLanguage("en")} className={`flex-1 px-3 py-2 text-xs font-semibold transition sm:flex-none ${!zh ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>EN</button>
+                <button type="button" onClick={() => setLanguage("zh")} className={`flex-1 px-3 py-2 text-xs font-semibold transition sm:flex-none ${zh ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>中文</button>
+              </div>
               <button
                 type="button"
                 onClick={() => downloadGlobalReport(countries, connections, accountStats)}
@@ -153,14 +171,14 @@ export function GlobalReport() {
             </div>
           </header>
 
-          <AskReportAI context={{ scope: "global", rows: rows.map((row) => ({ countryId: row.countryId, countryName: row.countryName, platform: row.platform, accountName: row.accountName, followers: row.followers, source: row.source, lastUpdated: row.lastUpdated })), summary: { totalFollowers, markets, apiAccounts, manualAccounts, topThreeShare, manualShare } }} />
+          <AskReportAI language={language} context={{ scope: "global", rows: rows.map((row) => ({ countryId: row.countryId, countryName: row.countryName, platform: row.platform, accountName: row.accountName, followers: row.followers, source: row.source, lastUpdated: row.lastUpdated })), summary: { totalFollowers, markets, apiAccounts, manualAccounts, topThreeShare, manualShare } }} />
 
           <section className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              ["Total Followers", number(totalFollowers), "Across all recorded accounts"],
-              ["Markets Covered", number(markets), "Countries and regions with data"],
-              ["API Accounts", number(apiAccounts), "Live or saved Supabase connections"],
-              ["Manual Accounts", number(manualAccounts), "Fallback snapshots only"],
+              [tr("Total Followers", "总粉丝数"), number(totalFollowers), tr("Across all recorded accounts", "所有已记录账号合计")],
+              [tr("Markets Covered", "覆盖市场"), number(markets), tr("Countries and regions with data", "已有数据的国家和地区")],
+              [tr("API Accounts", "API 账号"), number(apiAccounts), tr("Live or saved Supabase connections", "实时或已保存的 Supabase 连接")],
+              [tr("Manual Accounts", "手动账号"), number(manualAccounts), tr("Fallback snapshots only", "仅作为备用快照")],
             ].map(([label, value, description]) => (
               <article key={label} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
@@ -172,43 +190,43 @@ export function GlobalReport() {
 
           <section className="mb-6">
             <div className="mb-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Core conclusions</p>
-              <h2 className="mt-1 text-xl font-bold text-slate-900">Executive Summary</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">{tr("Core conclusions", "核心结论")}</p>
+              <h2 className="mt-1 text-xl font-bold text-slate-900">{tr("Executive Summary", "执行摘要")}</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Conclusions recalculate automatically whenever API data or manual snapshots change.
+                {tr("Conclusions recalculate automatically whenever API data or manual snapshots change.", "当 API 数据或手动快照发生变化时，结论会自动重新计算。")}
               </p>
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
               <article className="rounded-xl border border-slate-200 border-l-4 border-l-blue-500 bg-white p-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Coverage</p>
-                <h3 className="mt-1 font-semibold text-slate-900">Breadth established, depth remains uneven</h3>
-                <EditableNarrative storageKey="global:coverage" defaultValue={coverageNarrative} />
+                <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">{tr("Coverage", "覆盖情况")}</p>
+                <h3 className="mt-1 font-semibold text-slate-900">{tr("Breadth established, depth remains uneven", "覆盖广度已建立，但市场深度仍不均衡")}</h3>
+                <EditableNarrative storageKey={`global:${language}:coverage`} defaultValue={coverageNarrative} />
               </article>
 
               <article className="rounded-xl border border-slate-200 border-l-4 border-l-rose-500 bg-white p-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-rose-600">Priority-market risk</p>
-                <h3 className="mt-1 font-semibold text-slate-900">United States requires focused investment</h3>
-                <EditableNarrative storageKey="global:usa-risk" defaultValue={usaNarrative} />
+                <p className="text-xs font-semibold uppercase tracking-wide text-rose-600">{tr("Priority-market risk", "重点市场风险")}</p>
+                <h3 className="mt-1 font-semibold text-slate-900">{tr("United States requires focused investment", "美国市场需要重点投入")}</h3>
+                <EditableNarrative storageKey={`global:${language}:usa-risk`} defaultValue={usaNarrative} />
               </article>
 
               <article className="rounded-xl border border-slate-200 border-l-4 border-l-emerald-500 bg-white p-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">Leaders</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">{tr("Leaders", "领先表现")}</p>
                 <h3 className="mt-1 font-semibold text-slate-900">{largestMarket?.name ?? "—"} leads; {largestPlatform?.name ?? "—"} is the strongest platform</h3>
-                <EditableNarrative storageKey="global:leaders" defaultValue={leaderNarrative} />
+                <EditableNarrative storageKey={`global:${language}:leaders`} defaultValue={leaderNarrative} />
               </article>
 
               <article className="rounded-xl border border-slate-200 border-l-4 border-l-amber-500 bg-white p-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-amber-600">Data and account risk</p>
-                <h3 className="mt-1 font-semibold text-slate-900">Low-scale accounts and manual-data dependency</h3>
-                <EditableNarrative storageKey="global:data-risk" defaultValue={riskNarrative} />
+                <p className="text-xs font-semibold uppercase tracking-wide text-amber-600">{tr("Data and account risk", "数据与账号风险")}</p>
+                <h3 className="mt-1 font-semibold text-slate-900">{tr("Low-scale accounts and manual-data dependency", "低规模账号与手动数据依赖")}</h3>
+                <EditableNarrative storageKey={`global:${language}:data-risk`} defaultValue={riskNarrative} />
               </article>
             </div>
 
             <div className="mt-4 rounded-xl border border-violet-100 bg-violet-50/70 p-5">
-              <h3 className="text-sm font-semibold text-violet-900">Recommended next actions</h3>
+              <h3 className="text-sm font-semibold text-violet-900">{tr("Recommended next actions", "建议下一步行动")}</h3>
               <EditableNarrative
-                storageKey="global:recommended-actions"
+                storageKey={`global:${language}:recommended-actions`}
                 defaultValue={actionsNarrative}
                 className="text-slate-700"
               />
@@ -217,7 +235,7 @@ export function GlobalReport() {
 
           <section className="mb-6 grid gap-4 lg:grid-cols-2">
             <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="mb-4 text-base font-semibold text-slate-800">Followers by Market</h2>
+              <h2 className="mb-4 text-base font-semibold text-slate-800">{tr("Followers by Market", "各市场粉丝数")}</h2>
               <div className="h-72 sm:h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={countryData.slice(0, 12)} layout="vertical" margin={{ left: 20, right: 24 }}>
@@ -232,7 +250,7 @@ export function GlobalReport() {
             </article>
 
             <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="mb-4 text-base font-semibold text-slate-800">Followers by Platform</h2>
+              <h2 className="mb-4 text-base font-semibold text-slate-800">{tr("Followers by Platform", "各平台粉丝数")}</h2>
               <div className="h-72 sm:h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -256,7 +274,7 @@ export function GlobalReport() {
             </article>
 
             <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
-              <h2 className="mb-4 text-base font-semibold text-slate-800">API Coverage vs Manual Fallback</h2>
+              <h2 className="mb-4 text-base font-semibold text-slate-800">{tr("API Coverage vs Manual Fallback", "API 覆盖与手动数据补充")}</h2>
               <div className="grid items-center gap-6 md:grid-cols-[280px_1fr]">
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
@@ -273,11 +291,11 @@ export function GlobalReport() {
                     <div key={item.name} className="flex items-center justify-between rounded-lg bg-slate-50 px-4 py-3">
                       <span className="flex items-center gap-2 text-sm font-medium text-slate-700">
                         <span className="h-3 w-3 rounded-full" style={{ backgroundColor: SOURCE_COLORS[index] }} />
-                        {item.name}
+                        {tr(item.name, item.name === "API Connected" ? "API 已连接" : "手动快照")}
                       </span>
                       <span className="text-right">
-                        <strong className="block text-sm text-slate-900">{number(item.value)} followers</strong>
-                        <span className="text-xs text-slate-400">{item.accounts} accounts</span>
+                        <strong className="block text-sm text-slate-900">{number(item.value)} {tr("followers", "粉丝")}</strong>
+                        <span className="text-xs text-slate-400">{item.accounts} {tr("accounts", "个账号")}</span>
                       </span>
                     </div>
                   ))}
@@ -289,21 +307,21 @@ export function GlobalReport() {
           <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
               <div>
-                <h2 className="text-base font-semibold text-slate-800">Account Detail</h2>
-                <p className="text-xs text-slate-400">{rows.length} accounts across {markets} markets</p>
+                <h2 className="text-base font-semibold text-slate-800">{tr("Account Detail", "账号明细")}</h2>
+                <p className="text-xs text-slate-400">{zh ? `${rows.length} 个账号，覆盖 ${markets} 个市场` : `${rows.length} accounts across ${markets} markets`}</p>
               </div>
             </div>
             <div className="overflow-x-auto overscroll-x-contain">
               <table className="report-table w-full min-w-[850px] text-left text-sm">
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="px-5 py-3">Market</th>
-                    <th className="px-5 py-3">Platform</th>
-                    <th className="px-5 py-3">Account</th>
-                    <th className="px-5 py-3 text-right">Followers</th>
-                    <th className="px-5 py-3">Source</th>
-                    <th className="px-5 py-3">Updated</th>
-                    <th className="px-5 py-3 print:hidden">Dashboard</th>
+                    <th className="px-5 py-3">{tr("Market", "市场")}</th>
+                    <th className="px-5 py-3">{tr("Platform", "平台")}</th>
+                    <th className="px-5 py-3">{tr("Account", "账号")}</th>
+                    <th className="px-5 py-3 text-right">{tr("Followers", "粉丝数")}</th>
+                    <th className="px-5 py-3">{tr("Source", "数据来源")}</th>
+                    <th className="px-5 py-3">{tr("Updated", "更新时间")}</th>
+                    <th className="px-5 py-3 print:hidden">{tr("Dashboard", "仪表盘")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -322,7 +340,7 @@ export function GlobalReport() {
                             ? "bg-blue-50 text-blue-700"
                             : "bg-amber-50 text-amber-700"
                         }`}>
-                          {row.source}
+                          {tr(row.source, row.source === "API Connected" ? "API 已连接" : "手动快照")}
                         </span>
                       </td>
                       <td className="px-5 py-3 text-xs text-slate-500">{row.lastUpdated || "—"}</td>
