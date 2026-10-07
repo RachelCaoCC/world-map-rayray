@@ -297,17 +297,8 @@ export async function refreshFacebookToken(
     const url =
       `https://graph.facebook.com/v24.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${refreshToken}`;
     const res = await fetch(url);
-    if (!res.ok) {
-      const errorBody = await res.json().catch(() => ({}));
-      console.warn("YouTube refresh rejected", {
-        status: res.status,
-        error: String(errorBody.error ?? "unknown"),
-        description: String(errorBody.error_description ?? "").slice(0, 160),
-      });
-      return null;
-    }
+    if (!res.ok) return null;
     const data = await res.json();
-    if (!data.access_token) return null;
     return {
       accessToken: data.access_token,
       // Meta does not issue a separate refresh token. The newly extended
@@ -336,15 +327,25 @@ export async function refreshYouTubeToken(
         grant_type: "refresh_token",
       }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const errorBody = await res.json().catch(() => ({}));
+      console.warn("YouTube refresh rejected", {
+        status: res.status,
+        error: String(errorBody.error ?? "unknown"),
+        description: String(errorBody.error_description ?? "").slice(0, 160),
+      });
+      return null;
+    }
     const data = await res.json();
+    if (!data.access_token) return null;
     return {
       accessToken: data.access_token,
       expiresAt: data.expires_in
-        ? new Date(Date.now() + data.expires_in * 1000).toISOString()
+        ? new Date(Date.now() + Number(data.expires_in) * 1000).toISOString()
         : undefined,
     };
-  } catch {
+  } catch (err) {
+    console.warn("YouTube refresh failed", String(err).slice(0, 160));
     return null;
   }
 }
