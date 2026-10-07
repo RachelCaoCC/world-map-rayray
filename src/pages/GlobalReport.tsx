@@ -159,14 +159,14 @@ export function GlobalReport() {
                 onClick={() => downloadGlobalReport(countries, connections, accountStats)}
                 className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-100 sm:px-4 sm:text-sm"
               >
-                Download CSV
+                {tr("Download CSV", "下载 CSV")}
               </button>
               <button
                 type="button"
                 onClick={() => window.print()}
                 className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white shadow-sm hover:bg-blue-700 sm:px-4 sm:text-sm"
               >
-                Print / Save PDF
+                {tr("Print / Save PDF", "打印 / 保存 PDF")}
               </button>
             </div>
           </header>
@@ -201,31 +201,32 @@ export function GlobalReport() {
               <article className="rounded-xl border border-slate-200 border-l-4 border-l-blue-500 bg-white p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">{tr("Coverage", "覆盖情况")}</p>
                 <h3 className="mt-1 font-semibold text-slate-900">{tr("Breadth established, depth remains uneven", "覆盖广度已建立，但市场深度仍不均衡")}</h3>
-                <EditableNarrative storageKey={`global:${language}:coverage`} defaultValue={coverageNarrative} />
+                <EditableNarrative language={language} storageKey={`global:${language}:coverage`} defaultValue={coverageNarrative} />
               </article>
 
               <article className="rounded-xl border border-slate-200 border-l-4 border-l-rose-500 bg-white p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-wide text-rose-600">{tr("Priority-market risk", "重点市场风险")}</p>
                 <h3 className="mt-1 font-semibold text-slate-900">{tr("United States requires focused investment", "美国市场需要重点投入")}</h3>
-                <EditableNarrative storageKey={`global:${language}:usa-risk`} defaultValue={usaNarrative} />
+                <EditableNarrative language={language} storageKey={`global:${language}:usa-risk`} defaultValue={usaNarrative} />
               </article>
 
               <article className="rounded-xl border border-slate-200 border-l-4 border-l-emerald-500 bg-white p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">{tr("Leaders", "领先表现")}</p>
-                <h3 className="mt-1 font-semibold text-slate-900">{largestMarket?.name ?? "—"} leads; {largestPlatform?.name ?? "—"} is the strongest platform</h3>
-                <EditableNarrative storageKey={`global:${language}:leaders`} defaultValue={leaderNarrative} />
+                <h3 className="mt-1 font-semibold text-slate-900">{zh ? `${largestMarket?.name ?? "—"} 领先；${largestPlatform?.name ?? "—"} 是表现最强的平台` : `${largestMarket?.name ?? "—"} leads; ${largestPlatform?.name ?? "—"} is the strongest platform`}</h3>
+                <EditableNarrative language={language} storageKey={`global:${language}:leaders`} defaultValue={leaderNarrative} />
               </article>
 
               <article className="rounded-xl border border-slate-200 border-l-4 border-l-amber-500 bg-white p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-wide text-amber-600">{tr("Data and account risk", "数据与账号风险")}</p>
                 <h3 className="mt-1 font-semibold text-slate-900">{tr("Low-scale accounts and manual-data dependency", "低规模账号与手动数据依赖")}</h3>
-                <EditableNarrative storageKey={`global:${language}:data-risk`} defaultValue={riskNarrative} />
+                <EditableNarrative language={language} storageKey={`global:${language}:data-risk`} defaultValue={riskNarrative} />
               </article>
             </div>
 
             <div className="mt-4 rounded-xl border border-violet-100 bg-violet-50/70 p-5">
               <h3 className="text-sm font-semibold text-violet-900">{tr("Recommended next actions", "建议下一步行动")}</h3>
               <EditableNarrative
+                language={language}
                 storageKey={`global:${language}:recommended-actions`}
                 defaultValue={actionsNarrative}
                 className="text-slate-700"
@@ -350,7 +351,7 @@ export function GlobalReport() {
                           onClick={() => navigate(`/country/${row.countryId}`)}
                           className="text-xs font-medium text-blue-600 hover:underline"
                         >
-                          Open
+                          {tr("Open", "打开")}
                         </button>
                       </td>
                     </tr>
