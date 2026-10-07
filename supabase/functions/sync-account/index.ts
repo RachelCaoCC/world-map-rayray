@@ -14,7 +14,9 @@ function shouldRefreshSoon(conn: Record<string, unknown>): boolean {
   const expiresAt = new Date(conn.token_expires_at as string).getTime();
   const refreshWindowMs = conn.platform === "tiktok"
     ? 60 * 60 * 1000
-    : 7 * 86400000;
+    : conn.platform === "youtube"
+      ? 2 * 60 * 1000
+      : 7 * 86400000;
   return Number.isFinite(expiresAt) && expiresAt <= Date.now() + refreshWindowMs;
 }
 
@@ -103,8 +105,8 @@ serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "Connection not found" }), { status: 404, headers });
     }
 
-    // Refresh seven days before expiry so scheduled polling does not wait for
-    // the token to fail. Existing connections without expiry metadata are left unchanged.
+    // Refresh only near expiry. YouTube public statistics can use an API key,
+    // so OAuth renewal should not run aggressively.
     if (shouldRefreshSoon(conn)) {
       const refreshed = await tryRefreshToken(conn, supabase);
       if (!refreshed) {
@@ -154,9 +156,10 @@ serve(async (req: Request) => {
         }
       }
 
+      const unrecoverableAuth = isAuthError(errorMsg);
       await supabase
         .from("platform_connections")
-        .update({ status: "error" })
+        .update({ status: unrecoverableAuth ? "token_expired" : "connected" })
         .eq("id", connectionId);
 
       await supabase.from("audit_log").insert({
