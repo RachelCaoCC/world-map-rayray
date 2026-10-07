@@ -147,14 +147,14 @@ export function CountryReport() {
                 onClick={() => navigate(`/country/${country.id}`)}
                 className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
               >
-                Dashboard
+                {tr("Dashboard", "仪表盘")}
               </button>
               <button
                 type="button"
                 onClick={() => window.print()}
                 className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
               >
-                Print / Save PDF
+                {tr("Print / Save PDF", "打印 / 保存 PDF")}
               </button>
             </div>
           </header>
@@ -182,6 +182,7 @@ export function CountryReport() {
               <article className="rounded-xl border border-l-4 border-slate-200 border-l-blue-500 bg-white p-5 shadow-sm">
                 <h3 className="font-semibold text-slate-900">{tr("Platform concentration", "平台集中度")}</h3>
                 <EditableNarrative
+                language={language}
                   storageKey={`country:${country.id}:${periodDays}:${language}:concentration`}
                   defaultValue={concentrationNarrative}
                 />
@@ -189,6 +190,7 @@ export function CountryReport() {
               <article className="rounded-xl border border-l-4 border-slate-200 border-l-emerald-500 bg-white p-5 shadow-sm">
                 <h3 className="font-semibold text-slate-900">{tr("Growth leader", "增长领先平台")}</h3>
                 <EditableNarrative
+                language={language}
                   storageKey={`country:${country.id}:${periodDays}:${language}:growth`}
                   defaultValue={growthNarrative}
                 />
@@ -196,6 +198,7 @@ export function CountryReport() {
               <article className="rounded-xl border border-l-4 border-slate-200 border-l-amber-500 bg-white p-5 shadow-sm">
                 <h3 className="font-semibold text-slate-900">{tr("Priority action", "优先行动")}</h3>
                 <EditableNarrative
+                language={language}
                   storageKey={`country:${country.id}:${periodDays}:${language}:priority`}
                   defaultValue={priorityNarrative}
                 />
