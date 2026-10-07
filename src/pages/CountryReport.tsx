@@ -110,12 +110,15 @@ export function CountryReport() {
   const weakestGrowthName = weakestGrowth
     ? PLATFORM_INFO[weakestGrowth.platform as PlatformKey].name
     : "—";
-  const concentrationNarrative =
-    `${leadingPlatformName} is the largest channel with ${formatNumber(leadingPlatform?.followers ?? 0)} followers, representing ${leaderShare.toFixed(1)}% of this market's audience.`;
-  const growthNarrative =
-    `${strongestGrowthName} leads follower growth at ${formatGrowth(strongestGrowth?.followerGrowth ?? 0)} versus the previous ${periodDays} days.`;
-  const priorityNarrative =
-    `Review ${weakestGrowthName}, currently at ${formatGrowth(weakestGrowth?.followerGrowth ?? 0)}. Test content cadence, creative and cross-platform promotion.`;
+  const concentrationNarrative = zh
+    ? `${leadingPlatformName} 是当前最大的平台，拥有 ${formatNumber(leadingPlatform?.followers ?? 0)} 名粉丝，占该市场总受众的 ${leaderShare.toFixed(1)}%。`
+    : `${leadingPlatformName} is the largest channel with ${formatNumber(leadingPlatform?.followers ?? 0)} followers, representing ${leaderShare.toFixed(1)}% of this market's audience.`;
+  const growthNarrative = zh
+    ? `${strongestGrowthName} 的粉丝增长表现最佳，较前 ${periodDays} 天增长 ${formatGrowth(strongestGrowth?.followerGrowth ?? 0)}。`
+    : `${strongestGrowthName} leads follower growth at ${formatGrowth(strongestGrowth?.followerGrowth ?? 0)} versus the previous ${periodDays} days.`;
+  const priorityNarrative = zh
+    ? `建议重点复盘 ${weakestGrowthName}，当前增长率为 ${formatGrowth(weakestGrowth?.followerGrowth ?? 0)}。可测试发布频率、创意内容和跨平台导流。`
+    : `Review ${weakestGrowthName}, currently at ${formatGrowth(weakestGrowth?.followerGrowth ?? 0)}. Test content cadence, creative and cross-platform promotion.`;
 
   return (
     <Layout showBack backTo={`/country/${country.id}`}>
