@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../hooks/useAuth";
 
 export function TopBar({ showBack, backTo }: { showBack?: boolean; backTo?: string }) {
   const { isAdmin } = useAuth();
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const location = useLocation();
   const isHome = location.pathname === "/map";
   const isReport = location.pathname === "/report";
@@ -23,8 +25,50 @@ export function TopBar({ showBack, backTo }: { showBack?: boolean; backTo?: stri
             ← Back
           </Link>
         )}
-        <div className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent sm:flex">
-          <span className="text-white font-bold text-sm">A</span>
+        <div className="relative hidden shrink-0 sm:block">
+          <button
+            type="button"
+            onClick={() => setAdminMenuOpen((open) => !open)}
+            aria-label={isAdmin ? "Open admin menu" : "Open admin login menu"}
+            aria-expanded={adminMenuOpen}
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-white transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-white/70"
+          >
+            <span className="text-sm font-bold">A</span>
+          </button>
+
+          {adminMenuOpen && (
+            <div className="absolute left-0 top-full z-50 mt-2 w-48 rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl">
+              {isAdmin ? (
+                <>
+                  <Link
+                    to="/admin/platforms"
+                    onClick={() => setAdminMenuOpen(false)}
+                    className="block px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                  >
+                    Platform Management
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setAdminMenuOpen(false);
+                      await handleLogout();
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-sm text-slate-700 transition-colors hover:bg-slate-100"
+                  >
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <Link
+                  to="/admin/login"
+                  onClick={() => setAdminMenuOpen(false)}
+                  className="block px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                >
+                  Admin login
+                </Link>
+              )}
+            </div>
+          )}
         </div>
         <h1 className="truncate text-sm font-semibold text-white sm:text-lg">
           {isHome ? "Global Social Media Dashboard" : isReport ? "Global Report" : "Accounts Dashboard"}
@@ -79,24 +123,6 @@ export function TopBar({ showBack, backTo }: { showBack?: boolean; backTo?: stri
           <span className="absolute -top-1 -right-1 w-2 h-2 bg-negative rounded-full" />
         </button>}
 
-        {isAdmin ? <div className="relative group">
-          <button className="flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-white transition-colors hover:bg-white/10">
-            <span>Admin</span>
-            <svg className="h-4 w-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          {/* Dropdown */}
-          <div className="invisible absolute right-0 top-full z-50 mt-1 w-32 rounded-lg border border-slate-200 bg-white py-1 opacity-0 shadow-xl transition-all group-hover:visible group-hover:opacity-100">
-            <button
-              onClick={handleLogout}
-              className="w-full px-4 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-100"
-            >
-              Sign out
-            </button>
-          </div>
-        </div> : <Link to="/admin/login" className="rounded-lg border border-white/30 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/10 sm:text-sm">Admin login</Link>}
       </div>
     </header>
   );
