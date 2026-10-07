@@ -149,18 +149,24 @@ export async function fetchYouTubeStats(
   channelId: string,
 ): Promise<PlatformStats | null> {
   try {
-    const url =
-      `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${channelId}`;
-    const res = await fetch(url, {
+    const baseUrl = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${encodeURIComponent(channelId)}`;
+    const apiKey = Deno.env.get("YOUTUBE_API_KEY") ?? "";
+
+    // Channel statistics are public data. Prefer an API key when configured so
+    // reporting does not depend on a user's OAuth session staying valid.
+    // Fall back to OAuth for existing deployments without YOUTUBE_API_KEY.
+    const url = apiKey ? `${baseUrl}&key=${encodeURIComponent(apiKey)}` : baseUrl;
+    const res = await fetch(url, apiKey ? undefined : {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
+
     const text = await res.text();
     let data: Record<string, unknown>;
     try { data = JSON.parse(text); } catch {
       return { followers: 0, totalViews: 0, error: `YouTube API: ${text.substring(0, 200)}` };
     }
     if (!res.ok || data.error) {
-      const errObj = data.error as Record<string, { message?: string }> | undefined;
+      const errObj = data.error as { message?: string } | undefined;
       const msg = errObj?.message ?? `HTTP ${res.status}`;
       return { followers: 0, totalViews: 0, error: `YouTube API: ${msg}` };
     }
@@ -291,8 +297,17 @@ export async function refreshFacebookToken(
     const url =
       `https://graph.facebook.com/v24.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${refreshToken}`;
     const res = await fetch(url);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const errorBody = await res.json().catch(() => ({}));
+      console.warn("YouTube refresh rejected", {
+        status: res.status,
+        error: String(errorBody.error ?? "unknown"),
+        description: String(errorBody.error_description ?? "").slice(0, 160),
+      });
+      return null;
+    }
     const data = await res.json();
+    if (!data.access_token) return null;
     return {
       accessToken: data.access_token,
       // Meta does not issue a separate refresh token. The newly extended
