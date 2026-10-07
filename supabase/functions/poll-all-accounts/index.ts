@@ -17,7 +17,9 @@ function shouldRefreshSoon(conn: Record<string, unknown>): boolean {
   const expiresAt = new Date(conn.token_expires_at as string).getTime();
   const refreshWindowMs = conn.platform === "tiktok"
     ? 60 * 60 * 1000
-    : 7 * 86400000;
+    : conn.platform === "youtube"
+      ? 2 * 60 * 1000
+      : 7 * 86400000;
   return Number.isFinite(expiresAt) && expiresAt <= Date.now() + refreshWindowMs;
 }
 
@@ -105,7 +107,8 @@ serve(async (req: Request) => {
         try {
           let accessToken = decryptToken(conn.access_token as string);
 
-          // Proactively extend Meta/YouTube tokens seven days before expiry.
+          // Refresh YouTube only when it is about to expire. Public YouTube
+          // channel stats can use YOUTUBE_API_KEY and do not require OAuth.
           if (shouldRefreshSoon(conn)) {
             const refreshed = await tryRefreshToken(conn, supabase);
             if (refreshed) {
@@ -125,7 +128,9 @@ serve(async (req: Request) => {
             conn.platform as string, accessToken, conn.external_account_id as string,
           );
 
-          // Auto-refresh on auth errors
+          // Auto-refresh on auth errors. If a refresh token has genuinely
+          // stopped working, mark the connection as requiring re-authorisation.
+          let authRefreshFailed = false;
           if (stats?.error && isAuthError(stats.error)) {
             const refreshed = await tryRefreshToken(conn, supabase);
             if (refreshed) {
@@ -138,6 +143,8 @@ serve(async (req: Request) => {
                 accessToken = decryptToken(freshConn.access_token);
                 stats = await fetchPlatformStats(conn.platform as string, accessToken, conn.external_account_id as string);
               }
+            } else {
+              authRefreshFailed = true;
             }
           }
 
@@ -148,11 +155,19 @@ serve(async (req: Request) => {
               actor: "System",
               country_id: conn.country_id as string,
               platform: conn.platform as string,
-              details: `Poll failed for "${conn.account_name}": ${errorMsg}`,
+              details: authRefreshFailed
+                ? `Poll auth failed for "${conn.account_name}" — re-authorisation required: ${errorMsg}`
+                : `Poll failed for "${conn.account_name}": ${errorMsg}`,
             });
-            await supabase.from("platform_connections")
-              .update({ status: "error" })
-              .eq("id", conn.id);
+
+            // A transient API/network/quota failure should not permanently
+            // remove the account from future polls. Only an unrecoverable auth
+            // failure changes the connection state.
+            if (authRefreshFailed) {
+              await supabase.from("platform_connections")
+                .update({ status: "token_expired" })
+                .eq("id", conn.id);
+            }
             failed++;
             return;
           }
@@ -201,7 +216,7 @@ serve(async (req: Request) => {
           }
 
           await supabase.from("platform_connections")
-            .update({ last_synced_at: now })
+            .update({ last_synced_at: now, status: "connected" })
             .eq("id", conn.id);
 
           await supabase.from("audit_log").insert({
