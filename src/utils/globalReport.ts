@@ -1,5 +1,5 @@
 import type { AccountStats, Country, PlatformConnection } from "../types";
-import { MANUAL_ACCOUNT_SNAPSHOTS, type ManualPlatformKey } from "../data/manualSnapshots";
+import { MANUAL_ACCOUNT_SNAPSHOTS, mergedManualSnapshots, type ManualPlatformKey, type ManualSnapshotOverride } from "../data/manualSnapshots";
 
 export type ReportDataSource = "API Connected" | "Manual Snapshot";
 
@@ -24,6 +24,7 @@ export function buildGlobalReportRows(
   countries: Country[],
   connections: PlatformConnection[],
   stats: Map<string, AccountStats>,
+  manualOverrides: ManualSnapshotOverride[] = [],
 ): GlobalReportRow[] {
   const countryById = new Map(countries.map((country) => [country.id, country]));
   const connected = connections.filter((connection) => connection.status === "connected");
@@ -45,7 +46,13 @@ export function buildGlobalReportRows(
     };
   });
 
-  for (const snapshot of MANUAL_ACCOUNT_SNAPSHOTS) {
+  const countryIds = new Set([
+    ...countries.map(c => c.id),
+    ...MANUAL_ACCOUNT_SNAPSHOTS.map(s => s.countryId),
+    ...manualOverrides.map(s => s.countryId),
+  ]);
+  const manual = [...countryIds].flatMap(id => mergedManualSnapshots(id, manualOverrides));
+  for (const snapshot of manual) {
     if (connectedKeys.has(`${snapshot.countryId}:${snapshot.platform}`)) continue;
     rows.push({
       countryId: snapshot.countryId,
@@ -54,7 +61,7 @@ export function buildGlobalReportRows(
       platform: snapshot.platform,
       accountName: snapshot.accountName,
       followers: snapshot.followers,
-      secondaryMetric: null,
+      secondaryMetric: snapshot.totalViews ?? null,
       source: "Manual Snapshot",
       lastUpdated: snapshot.capturedAt,
     });
@@ -69,8 +76,9 @@ export function downloadGlobalReport(
   countries: Country[],
   connections: PlatformConnection[],
   stats: Map<string, AccountStats>,
+  manualOverrides: ManualSnapshotOverride[] = [],
 ) {
-  const rows = buildGlobalReportRows(countries, connections, stats);
+  const rows = buildGlobalReportRows(countries, connections, stats, manualOverrides);
   const header = [
     "Country / Region",
     "Continent",
