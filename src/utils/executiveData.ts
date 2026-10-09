@@ -81,12 +81,14 @@ export const numeric = safeNum;
 export function mergeAccounts(live: GlobalReportRow[], data: ExecutiveData): ExecutiveAccount[] {
   // Treat a country/platform as a collection of independent accounts.
   // An API connection supersedes a snapshot only when the account identity matches.
-  const apiKeys = new Set(live.filter(r => r.source === "API Connected").map(accountKey));
+  const protectedKeys = new Set(live.filter(r =>
+    r.source === "API Connected" || r.source === "Manual Edited",
+  ).map(accountKey));
   const importedKeys = new Set(data.accounts.map(accountKey));
-  const result = live.filter(r => r.source === "API Connected" || !importedKeys.has(accountKey(r)))
+  const result = live.filter(r => protectedKeys.has(accountKey(r)) || !importedKeys.has(accountKey(r)))
     .map(r => ({ ...r, group: r.countryName })) as ExecutiveAccount[];
   for (const account of data.accounts) {
-    if (apiKeys.has(accountKey(account))) continue;
+    if (protectedKeys.has(accountKey(account))) continue;
     result.push(account);
   }
   return result;
