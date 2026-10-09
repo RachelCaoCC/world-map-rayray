@@ -7,6 +7,8 @@ import { PlatformCards } from "../components/dashboard/PlatformCards";
 import { TrendGraphs } from "../components/dashboard/TrendGraphs";
 import { ComparisonTable } from "../components/dashboard/ComparisonTable";
 import { usePolling } from "../hooks/usePolling";
+import { useAuth } from "../hooks/useAuth";
+import { ManualSnapshotEditor } from "../components/dashboard/ManualSnapshotEditor";
 import type { CountryPlatformStats, PlatformKey, TrendPoint } from "../types";
 
 type PeriodDays = 7 | 30 | 90;
@@ -45,6 +47,13 @@ export function CountryDashboard() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [periodDays, setPeriodDays] = useState<PeriodDays>(7);
+  const { isAdmin } = useAuth();
+  const [editingManual, setEditingManual] = useState(false);
+  const [editingPlatform, setEditingPlatform] = useState<PlatformKey | undefined>(undefined);
+  const openManualEditor = (platform?: PlatformKey) => {
+    setEditingPlatform(platform);
+    setEditingManual(true);
+  };
   const getCountryById = useDashboardStore((s) => s.getCountryById);
   const getAggregatedStatsForCountry = useDashboardStore((s) => s.getAggregatedStatsForCountry);
   const fetchTrendData = useDashboardStore((s) => s.fetchTrendData);
@@ -105,6 +114,12 @@ export function CountryDashboard() {
             </div>
 
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              {isAdmin && <button
+                type="button"
+                onClick={() => openManualEditor()}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-semibold text-blue-700 shadow-sm transition hover:bg-blue-50"
+                title="Edit manual follower snapshots or add a new manual account"
+              >✎ Manual Data / 手动录入</button>}
               <button
                 type="button"
                 onClick={() => navigate(`/country/${country.id}/report?period=${periodDays}`)}
@@ -127,7 +142,10 @@ export function CountryDashboard() {
 
           <SummaryCards stats={periodStats} periodDays={periodDays} />
 
-          <PlatformCards stats={periodStats} countryId={country.id} periodDays={periodDays} />
+          <PlatformCards
+            stats={periodStats} countryId={country.id} periodDays={periodDays}
+            onEditManual={openManualEditor}
+          />
 
           <TrendGraphs
             trendData={trendData}
@@ -139,6 +157,13 @@ export function CountryDashboard() {
           <ComparisonTable stats={periodStats} periodDays={periodDays} />
         </div>
       </div>
+      {editingManual && (
+        <ManualSnapshotEditor
+          countryId={country.id}
+          initialPlatform={editingPlatform}
+          onClose={() => setEditingManual(false)}
+        />
+      )}
     </Layout>
   );
 }
