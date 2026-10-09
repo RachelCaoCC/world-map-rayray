@@ -10,7 +10,6 @@ import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../lib/supabase";
 import { useDashboardStore } from "../store/useStore";
 import { buildGlobalReportRows } from "../utils/globalReport";
-import { getManualSnapshots } from "../data/manualSnapshots";
 import { readSpreadsheet } from "../utils/readSpreadsheet";
 import {
   accountKey, DEFAULT_WEBSITES, downloadCSV, EMPTY_EXECUTIVE, importWorkbook,
@@ -248,21 +247,7 @@ export function ExecutiveDashboard() {
             (byDate.get(row.snapshot_date) ?? 0) + Number(row.followers ?? 0));
           setTrend([...byDate].map(([date, followers]) => ({ date, followers })));
         }
-      } else if (selected.source === "Manual Edited") {
-        const { data } = await supabase.from("manual_social_history")
-          .select("captured_at,followers").eq("country_id", selected.countryId)
-          .eq("platform", selected.platform).eq("account_name", selected.accountName)
-          .order("captured_at", { ascending: true }).limit(180);
-        if (active) {
-          const points = new Map<string, number>();
-          const original = getManualSnapshots(selected.countryId, selected.platform)
-            .find(s => s.accountName.trim().toLowerCase() === selected.accountName.trim().toLowerCase());
-          if (original) points.set(original.capturedAt.slice(0, 10), original.followers);
-          for (const row of data ?? []) points.set(row.captured_at, Number(row.followers ?? 0));
-          setTrend([...points].sort(([a], [b]) => a.localeCompare(b))
-            .map(([date, followers]) => ({ date, followers })));
-        }
-      } else if (active) setTrend(imported.sort((a, b) => a.date.localeCompare(b)));
+      } else if (active) setTrend(imported.sort((a, b) => a.date.localeCompare(b.date)));
       if (active) setTrendLoading(false);
     };
     void fetchTrend();
@@ -582,10 +567,6 @@ export function ExecutiveDashboard() {
               <p className="text-xs text-slate-500">{platformName(selected.platform)} · {selected.countryName} · {selected.source}</p></div>
             <button className={button} onClick={() => setSelected(null)} type="button">{t("Close", "关闭")}</button>
           </div>
-          {isAdmin && selected.source !== "API Connected" && <Link
-            to={`/country/${selected.countryId}`}
-            className="mt-3 inline-flex rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
-          >✎ {t("Edit manual data on Country Dashboard →", "前往国家看板编辑手动数据 →")}</Link>}
           <div className="mt-5 h-64">
             {trendLoading ? <p className="text-sm text-slate-500">{t("Loading…", "加载中…")}</p> :
               trend.length < 2 ? <div className="flex h-full items-center justify-center rounded-xl bg-slate-50 text-center text-sm text-slate-500">
