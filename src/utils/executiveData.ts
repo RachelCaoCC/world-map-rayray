@@ -138,7 +138,7 @@ export function importWorkbook(sheets: SheetRows[], previous: ExecutiveData): { 
       }
       if (!id || !platform || !accountName || followers === null) continue;
       const rawDate = col(record, aliases.date);
-      const capturedAt = /^\\d{5}$/.test(rawDate)
+      const capturedAt = /^\d{5}$/.test(rawDate)
         ? new Date((Number(rawDate) - 25569) * 86400000).toISOString().slice(0, 10)
         : rawDate || now;
       const account: ExecutiveAccount = {
