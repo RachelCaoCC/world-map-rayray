@@ -9,6 +9,7 @@ export function TopBar({ showBack, backTo }: { showBack?: boolean; backTo?: stri
   const location = useLocation();
   const isHome = location.pathname === "/map";
   const isReport = location.pathname === "/report";
+  const isExecutive = location.pathname === "/executive";
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -71,12 +72,12 @@ export function TopBar({ showBack, backTo }: { showBack?: boolean; backTo?: stri
           )}
         </div>
         <h1 className="truncate text-sm font-semibold text-white sm:text-lg">
-          {isHome ? "Global Social Media Dashboard" : isReport ? "Global Report" : "Accounts Dashboard"}
+          {isHome ? "Global Social Media Dashboard" : isReport ? "Global Report" : isExecutive ? "Executive Dashboard" : "Accounts Dashboard"}
         </h1>
       </div>
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-4">
-        {isHome && (
+        {(isHome || isExecutive) && (
           <Link
             to="/report"
             className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-2 text-xs font-medium text-white transition-colors hover:bg-white/20 sm:px-3"
@@ -86,6 +87,16 @@ export function TopBar({ showBack, backTo }: { showBack?: boolean; backTo?: stri
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 19V9m5 10V5m5 14v-7m5 7V3" />
             </svg>
             <span className="hidden md:inline">Global Report</span>
+          </Link>
+        )}
+
+        {(isHome || isReport || isExecutive) && (
+          <Link
+            to="/executive"
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-2 text-xs font-medium text-white transition-colors hover:bg-white/20 sm:px-3"
+            title="Open executive dashboard"
+          >
+            <span>◈</span><span className="hidden md:inline">Executive Dashboard</span>
           </Link>
         )}
 
