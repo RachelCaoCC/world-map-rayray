@@ -43,7 +43,7 @@ function formFrom(snapshot: ManualAccountSnapshot): ManualForm {
     accountName: snapshot.accountName,
     followers: String(snapshot.followers),
     totalViews: String(snapshot.totalViews ?? 0),
-    capturedAt: snapshot.capturedAt.slice(0, 10),
+    capturedAt: today(), // a new edit is a new dated observation unless the admin chooses another date
   };
 }
 
@@ -312,6 +312,7 @@ export function ManualSnapshotEditor({ countryId, initialPlatform, onClose }: Pr
                 <input id="manual-date" type="date" max={today()} className={inputStyle}
                   value={form.capturedAt} disabled={!isAdmin || isAutomated} required
                   onChange={event => setForm(s => ({ ...s, capturedAt: event.target.value }))} />
+                {!isNew && selected && <p className="mt-1 text-[11px] text-slate-500">Previous snapshot: {selected.capturedAt.slice(0, 10)}. Today is selected by default to preserve historical figures.</p>}
               </div>
 
               {isAutomated && <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-800">
