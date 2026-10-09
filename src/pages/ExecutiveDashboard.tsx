@@ -13,7 +13,7 @@ import { buildGlobalReportRows } from "../utils/globalReport";
 import { readSpreadsheet } from "../utils/readSpreadsheet";
 import {
   accountKey, DEFAULT_WEBSITES, downloadCSV, EMPTY_EXECUTIVE, importWorkbook,
-  marketId, mergeAccounts, numeric,
+  mergeAccounts, numeric,
 } from "../utils/executiveData";
 import type {
   ExecutiveAccount, ExecutiveData, MarketInput, WebsiteInput,
