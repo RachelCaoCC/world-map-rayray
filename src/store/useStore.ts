@@ -7,6 +7,8 @@ import type {
 import { supabase } from "../lib/supabase";
 import { mergedManualSnapshots } from "../data/manualSnapshots";
 import type { ManualAccountSnapshot, ManualSnapshotOverride, ManualPlatformKey } from "../data/manualSnapshots";
+import { buildManualPlatformHistory } from "../utils/manualTrend";
+import type { ManualHistoryRow } from "../utils/manualTrend";
 
 const ALL_PLATFORMS: PlatformKey[] = ["facebook", "instagram", "youtube", "tiktok"];
 const FUNC_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
@@ -288,30 +290,52 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
 
   fetchTrendData: async (countryId: string) => {
-    const { data, error } = await supabase
-      .from("trend_snapshots")
-      .select("*")
-      .eq("country_id", countryId)
-      .order("snapshot_date", { ascending: true });
-    if (error) { console.error("fetchTrendData:", error); return; }
-    const points: TrendPoint[] = (data ?? []).map((row: Record<string, unknown>) => ({
-      date: row.snapshot_date as string,
-      facebook: row.platform === "facebook" ? { followers: Number(row.followers), views: Number(row.total_views) } : undefined,
-      instagram: row.platform === "instagram" ? { followers: Number(row.followers), views: Number(row.total_views) } : undefined,
-      youtube: row.platform === "youtube" ? { followers: Number(row.followers), views: Number(row.total_views) } : undefined,
-      tiktok: row.platform === "tiktok" ? { followers: Number(row.followers), views: Number(row.total_views) } : undefined,
-    }));
-    // Merge same-date rows into one TrendPoint
+    const [apiResult, manualResult] = await Promise.all([
+      supabase.from("trend_snapshots")
+        .select("*").eq("country_id", countryId)
+        .order("snapshot_date", { ascending: true }),
+      supabase.from("manual_social_history")
+        .select("country_id,platform,account_name,followers,total_views,captured_at")
+        .eq("country_id", countryId)
+        .order("captured_at", { ascending: true }).limit(5000),
+    ]);
+    if (apiResult.error) console.error("fetchTrendData:", apiResult.error);
+    if (manualResult.error) console.error("fetchManualTrend:", manualResult.error);
+
+    const automated = new Set(get().platformConnections.filter(connection =>
+      connection.countryId === countryId && connection.status === "connected",
+    ).map(connection => connection.platform));
+
     const merged = new Map<string, TrendPoint>();
-    for (const p of points) {
-      const existing = merged.get(p.date) ?? { date: p.date };
-      if (p.facebook !== undefined) existing.facebook = p.facebook;
-      if (p.instagram !== undefined) existing.instagram = p.instagram;
-      if (p.youtube !== undefined) existing.youtube = p.youtube;
-      if (p.tiktok !== undefined) existing.tiktok = p.tiktok;
-      merged.set(p.date, existing);
+    // Exclude previously connected accounts that are no longer active.
+    for (const row of apiResult.data ?? []) {
+      const platform = row.platform as PlatformKey;
+      if (!automated.has(platform)) continue;
+      const date = row.snapshot_date as string;
+      const point = merged.get(date) ?? { date };
+      const value = { followers: Number(row.followers ?? 0), views: Number(row.total_views ?? 0) };
+      if (platform === "facebook") point.facebook = value;
+      if (platform === "instagram") point.instagram = value;
+      if (platform === "youtube") point.youtube = value;
+      if (platform === "tiktok") point.tiktok = value;
+      merged.set(date, point);
     }
-    set({ trendData: Array.from(merged.values()) });
+
+    const manualPoints = buildManualPlatformHistory(
+      countryId,
+      get().getManualSnapshotsForCountry(countryId),
+      (manualResult.data ?? []) as ManualHistoryRow[],
+      automated,
+    );
+    for (const point of manualPoints) {
+      const existing = merged.get(point.date) ?? { date: point.date };
+      if (point.facebook && !automated.has("facebook")) existing.facebook = point.facebook;
+      if (point.instagram && !automated.has("instagram")) existing.instagram = point.instagram;
+      if (point.youtube && !automated.has("youtube")) existing.youtube = point.youtube;
+      if (point.tiktok && !automated.has("tiktok")) existing.tiktok = point.tiktok;
+      merged.set(point.date, existing);
+    }
+    set({ trendData: [...merged.values()].sort((a, b) => a.date.localeCompare(b.date)) });
   },
 
   fetchAuditLog: async () => {
