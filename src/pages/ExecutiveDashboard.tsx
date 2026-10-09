@@ -264,8 +264,8 @@ export function ExecutiveDashboard() {
   ]);
 
   return (
-    <Layout showBack backTo="/map">
-      <div className="executive-print h-full overflow-y-auto bg-[#f2f5fb] print:h-auto print:overflow-visible">
+    <Layout showBack backTo="/map" pageScroll>
+      <div className="executive-print w-full bg-[#f2f5fb] print:h-auto print:overflow-visible">
         <div className="bg-gradient-to-r from-[#112a59] via-[#193e92] to-[#2459d9] px-4 py-9 text-white sm:px-8">
           <div className="mx-auto flex max-w-7xl flex-wrap items-start justify-between gap-4">
             <div>
