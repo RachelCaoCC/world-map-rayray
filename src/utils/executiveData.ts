@@ -84,11 +84,13 @@ export function mergeAccounts(live: GlobalReportRow[], data: ExecutiveData): Exe
   const protectedKeys = new Set(live.filter(r =>
     r.source === "API Connected" || r.source === "Manual Edited",
   ).map(accountKey));
+  const automatedPlatforms = new Set(live.filter(r => r.source === "API Connected")
+    .map(r => r.countryId + ":" + r.platform));
   const importedKeys = new Set(data.accounts.map(accountKey));
   const result = live.filter(r => protectedKeys.has(accountKey(r)) || !importedKeys.has(accountKey(r)))
     .map(r => ({ ...r, group: r.countryName })) as ExecutiveAccount[];
   for (const account of data.accounts) {
-    if (protectedKeys.has(accountKey(account))) continue;
+    if (protectedKeys.has(accountKey(account)) || automatedPlatforms.has(account.countryId + ":" + account.platform)) continue;
     result.push(account);
   }
   return result;
