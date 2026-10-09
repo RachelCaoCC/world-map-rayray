@@ -309,6 +309,12 @@ export function ExecutiveDashboard() {
                 ["Australia", "Australia", "instagram", "EXAMPLE ONLY - replace me", 0, "2026-10-01", "", "", ""],
               ])}>{t("Download import template", "下载导入模板")}</button>
               <button className={button} type="button" onClick={downloadAccounts}>{t("Export accounts", "导出账号")}</button>
+              {isAdmin && <button type="button" className={button} onClick={() => {
+                if (!window.confirm(t("Clear imported data and restore defaults?", "确定清除已导入的记录并恢复默认数据吗？"))) return;
+                const reset: ExecutiveData = { ...EMPTY_EXECUTIVE };
+                setInputs(reset);
+                void saveData(reset);
+              }}>{t("Restore defaults", "恢复默认数据")}</button>}
               {saveButton}
               {!isAdmin && <span className="text-xs text-slate-500">{t("Read-only: Admin login required to upload and edit.", "只读模式：管理员登录后才可上传和修改。")}</span>}
             </div>
