@@ -54,7 +54,7 @@ export function CountryDashboard() {
     setEditingPlatform(platform);
     setEditingManual(true);
   };
-  const getCountryById = useDashboardStore((s) => s.getCountryById);
+  const country = useDashboardStore((s) => s.countries.find((item) => item.id === id));
   const getAggregatedStatsForCountry = useDashboardStore((s) => s.getAggregatedStatsForCountry);
   const fetchTrendData = useDashboardStore((s) => s.fetchTrendData);
   const trendData = useDashboardStore((s) => s.trendData);
@@ -65,7 +65,6 @@ export function CountryDashboard() {
     if (id) fetchTrendData(id);
   }, [id, fetchTrendData]);
 
-  const country = getCountryById(id ?? "");
   if (!country) {
     return (
       <Layout showBack backTo="/map">
