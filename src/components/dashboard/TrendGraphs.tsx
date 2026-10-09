@@ -21,7 +21,11 @@ export function TrendGraphs({
   periodDays,
   onPeriodChange,
 }: TrendGraphsProps) {
-  const filteredData = trendData.slice(-periodDays);
+  // A 7/30/90-day window is chronological, not the last N available rows.
+  const cutoff = Date.now() - periodDays * 24 * 60 * 60 * 1000;
+  const filteredData = trendData.filter(point =>
+    new Date(point.date + "T23:59:59").getTime() >= cutoff,
+  );
 
   const formatYAxis = (value: number) =>
     value >= 1_000_000 ? `${(value / 1_000_000).toFixed(1)}M` :
@@ -61,6 +65,14 @@ export function TrendGraphs({
             </div>
           </div>
 
+          {!filteredData.some(point => chart.platforms.some(platform =>
+            (point[platform]?.[chart.key] ?? 0) > 0,
+          )) ? (
+            <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 text-center text-xs text-slate-500">
+              No recorded {chart.key === "followers" ? "follower history" : "view history"} in the selected {periodDays}-day window.
+              {chart.key === "followers" ? " Save a new manual snapshot or connect an API." : ""}
+            </div>
+          ) : (
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={filteredData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -83,12 +95,13 @@ export function TrendGraphs({
                   dataKey={chart.key === "followers" ? `${platform}.followers` : `${platform}.views`}
                   stroke={PLATFORM_COLORS[platform]}
                   strokeWidth={2}
-                  dot={false}
+                  dot={filteredData.length < 4}
                   name={PLATFORM_INFO[platform].name}
                 />
               ))}
             </LineChart>
           </ResponsiveContainer>
+          )}
         </div>
       ))}
     </div>
