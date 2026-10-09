@@ -5,7 +5,8 @@ import type {
   AvailableAccount, TrendPoint,
 } from "../types";
 import { supabase } from "../lib/supabase";
-import { getManualSnapshots, getManualSupportedPlatforms } from "../data/manualSnapshots";
+import { mergedManualSnapshots } from "../data/manualSnapshots";
+import type { ManualAccountSnapshot, ManualSnapshotOverride, ManualPlatformKey } from "../data/manualSnapshots";
 
 const ALL_PLATFORMS: PlatformKey[] = ["facebook", "instagram", "youtube", "tiktok"];
 const FUNC_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
@@ -14,17 +15,20 @@ function getCountryMetrics(
   countryId: string,
   connections: PlatformConnection[],
   stats: Map<string, AccountStats>,
+  manualOverrides: ManualSnapshotOverride[],
 ) {
   const connected = connections.filter(
     (connection) => connection.countryId === countryId && connection.status === "connected",
   );
   const connectedPlatforms = new Set(connected.map((connection) => connection.platform));
-  const manualFallbacks = getManualSnapshots(countryId).filter(
+  const manualFallbacks = mergedManualSnapshots(countryId, manualOverrides).filter(
     (snapshot) => !connectedPlatforms.has(snapshot.platform as PlatformKey),
   );
   const activePlatforms = [...new Set([
     ...connected.map((connection) => connection.platform),
-    ...getManualSupportedPlatforms(countryId).filter((platform) => !connectedPlatforms.has(platform)),
+    ...manualFallbacks.map(s => s.platform).filter(
+      (platform): platform is PlatformKey => platform !== "x",
+    ),
   ])] as PlatformKey[];
   const apiFollowers = connected.reduce(
     (sum, connection) => sum + (stats.get(connection.id)?.followers ?? 0),
@@ -56,6 +60,7 @@ interface DashboardState {
   platformConnections: PlatformConnection[];
   // Per-account analytics (keyed by connection.id)
   accountStats: Map<string, AccountStats>;
+  manualSnapshotOverrides: ManualSnapshotOverride[];
 
   // Trend data
   trendData: TrendPoint[];
@@ -79,6 +84,7 @@ interface DashboardState {
   fetchCountries: () => Promise<void>;
   fetchConnections: () => Promise<void>;
   fetchAccountStats: () => Promise<void>;
+  fetchManualSnapshots: () => Promise<void>;
   fetchTrendData: (countryId: string) => Promise<void>;
   fetchAuditLog: () => Promise<void>;
   fetchAll: () => Promise<void>;
@@ -105,6 +111,7 @@ interface DashboardState {
   getConnectionsForCountry: (countryId: string) => PlatformConnection[];
   getConnectionById: (id: string) => PlatformConnection | undefined;
   getAccountStats: (connectionId: string) => AccountStats | undefined;
+  getManualSnapshotsForCountry: (countryId: string, platform?: ManualPlatformKey) => ManualAccountSnapshot[];
   getAggregatedStats: (countryId: string, platform: PlatformKey) => CountryPlatformStats;
   getAggregatedStatsForCountry: (countryId: string) => CountryPlatformStats[];
   getAuditLog: (filters?: { countryId?: string; platform?: PlatformKey }) => AuditLogEntry[];
@@ -121,6 +128,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   hoveredCountryId: null,
   platformConnections: [],
   accountStats: new Map(),
+  manualSnapshotOverrides: [],
   trendData: [],
   auditLog: [],
   searchQuery: "",
@@ -146,7 +154,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
           const stats = get().accountStats;
           const countries: Country[] = data.map((row: Record<string, unknown>) => {
             const countryId = row.id as string;
-            const metrics = getCountryMetrics(countryId, conns, stats);
+            const metrics = getCountryMetrics(countryId, conns, stats, get().manualSnapshotOverrides);
             return {
               id: countryId,
               name: row.name as string,
@@ -180,7 +188,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     const stats = get().accountStats;
     const countries: Country[] = (data ?? []).map((row: Record<string, unknown>) => {
       const countryId = row.id as string;
-      const metrics = getCountryMetrics(countryId, conns, stats);
+      const metrics = getCountryMetrics(countryId, conns, stats, get().manualSnapshotOverrides);
       return {
         id: countryId,
         name: row.name as string,
@@ -255,6 +263,30 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     set({ accountStats: map });
   },
 
+  fetchManualSnapshots: async () => {
+    const { data, error } = await supabase.from("manual_social_snapshots")
+      .select("id,country_id,platform,account_name,followers,total_views,captured_at,is_hidden,countries(name,region)")
+      .order("updated_at", { ascending: false });
+    if (error) { console.error("fetchManualSnapshots:", error); return; }
+    const overrides: ManualSnapshotOverride[] = (data ?? []).map(row => {
+      const countryDetails = row.countries as unknown as { name: string; region: Country["region"] } | null;
+      return {
+        id: row.id as string,
+        countryId: row.country_id as string,
+        countryName: countryDetails?.name ?? (row.country_id as string).toUpperCase(),
+        region: countryDetails?.region ?? "Asia",
+        platform: row.platform as ManualPlatformKey,
+        accountName: row.account_name as string,
+        followers: Number(row.followers ?? 0),
+        totalViews: Number(row.total_views ?? 0),
+        capturedAt: row.captured_at as string,
+        hasTrend: true,
+        isHidden: Boolean(row.is_hidden),
+      };
+    });
+    set({ manualSnapshotOverrides: overrides });
+  },
+
   fetchTrendData: async (countryId: string) => {
     const { data, error } = await supabase
       .from("trend_snapshots")
@@ -305,6 +337,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     await Promise.all([
       get().fetchConnections(),
       get().fetchAccountStats(),
+      get().fetchManualSnapshots(),
     ]);
     await get().fetchCountries();
     set({ isLoaded: true });
@@ -441,20 +474,23 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     return get().accountStats.get(connectionId);
   },
 
+  getManualSnapshotsForCountry: (countryId, platform) =>
+    mergedManualSnapshots(countryId, get().manualSnapshotOverrides, platform),
+
   getAggregatedStats: (countryId, platform) => {
     const connections = get().platformConnections.filter(
       c => c.countryId === countryId && c.platform === platform && c.status === "connected"
     );
 
     if (connections.length === 0) {
-      const manual = getManualSnapshots(countryId, platform);
+      const manual = get().getManualSnapshotsForCountry(countryId, platform);
       if (manual.length > 0) {
         return {
           countryId,
           platform,
           accountCount: manual.length,
           followers: manual.reduce((sum, snapshot) => sum + snapshot.followers, 0),
-          totalViews: 0,
+          totalViews: manual.reduce((sum, snapshot) => sum + (snapshot.totalViews ?? 0), 0),
           followerGrowthPct30d: 0,
           viewGrowthPct30d: 0,
           lastUpdated: manual.reduce(
