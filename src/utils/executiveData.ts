@@ -126,7 +126,7 @@ export function importWorkbook(sheets: SheetRows[], previous: ExecutiveData): { 
         imported++; continue;
       }
       if (type.includes("market") || type.includes("roi") || type.includes("市场") ||
-        (!!col(record, ["population", "人口"]) && !platform)) {
+        (Object.keys(record).some(key => /^(population|spend|budget|investment|人口|市场投入)$/i.test(key.trim())) && !platform)) {
         if (!id) continue;
         const value: MarketInput = {
           id, population: safeNum(col(record, ["population", "population total", "人口"])),
@@ -137,7 +137,10 @@ export function importWorkbook(sheets: SheetRows[], previous: ExecutiveData): { 
         imported++; continue;
       }
       if (!id || !platform || !accountName || followers === null) continue;
-      const capturedAt = col(record, aliases.date) || now;
+      const rawDate = col(record, aliases.date);
+      const capturedAt = /^\\d{5}$/.test(rawDate)
+        ? new Date((Number(rawDate) - 25569) * 86400000).toISOString().slice(0, 10)
+        : rawDate || now;
       const account: ExecutiveAccount = {
         countryId: id,
         countryName: col(record, ["countryName", "market name", "国家名称"]) || country.trim() || id.toUpperCase(),
