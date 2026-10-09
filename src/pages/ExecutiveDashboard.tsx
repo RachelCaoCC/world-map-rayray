@@ -308,7 +308,21 @@ export function ExecutiveDashboard() {
                 ["Country", "Group", "Platform", "Account", "Followers", "Date", "Views", "Handle", "ProfileUrl"],
                 ["Australia", "Australia", "instagram", "EXAMPLE ONLY - replace me", 0, "2026-10-01", "", "", ""],
               ])}>{t("Download import template", "下载导入模板")}</button>
+              <button className={button} type="button" onClick={() => downloadCSV("executive-market-template.csv", [
+                ["Country", "Population", "Spend", "Currency"],
+                ["Australia", "", "", "AUD"],
+              ])}>{t("Market ROI template", "市场 ROI 模板")}</button>
+              <button className={button} type="button" onClick={() => downloadCSV("executive-websites-template.csv", [
+                ["Country", "Name", "URL", "Status", "Daily PV", "Note"],
+                ["Australia", "Australia", "https://iflytekau.com/", "unknown", "", ""],
+              ])}>{t("Website template", "官网模板")}</button>
               <button className={button} type="button" onClick={downloadAccounts}>{t("Export accounts", "导出账号")}</button>
+              {isAdmin && <button className={button} type="button" onClick={() => {
+                if (!window.confirm(t("Reset all imported accounts, history and market inputs to default? This cannot be undone.", "恢复默认数据？将清除已导入的账号、历史和市场投入，此操作不可撤销。"))) return;
+                const reset: ExecutiveData = { accounts: [], history: [], markets: [], websites: DEFAULT_WEBSITES, period: "" };
+                setInputs(reset);
+                void saveData(reset);
+              }}>{t("Restore default data", "恢复默认数据")}</button>
               {saveButton}
               {!isAdmin && <span className="text-xs text-slate-500">{t("Read-only: Admin login required to upload and edit.", "只读模式：管理员登录后才可上传和修改。")}</span>}
             </div>
