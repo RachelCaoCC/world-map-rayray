@@ -2,17 +2,20 @@ import { useNavigate } from "react-router-dom";
 import type { CountryPlatformStats, PlatformKey } from "../../types";
 import { PLATFORM_INFO, getProfileUrl } from "../../data/mockData";
 import { useDashboardStore } from "../../store/useStore";
-import { getManualSnapshots } from "../../data/manualSnapshots";
+import { useAuth } from "../../hooks/useAuth";
 
 interface PlatformCardsProps {
   stats: CountryPlatformStats[];
   countryId: string;
   periodDays: 7 | 30 | 90;
+  onEditManual?: (platform: PlatformKey) => void;
 }
 
-export function PlatformCards({ stats, countryId, periodDays }: PlatformCardsProps) {
+export function PlatformCards({ stats, countryId, periodDays, onEditManual }: PlatformCardsProps) {
+  const { isAdmin } = useAuth();
   const navigate = useNavigate();
   const getConnectionsForCountryPlatform = useDashboardStore((state) => state.getConnectionsForCountryPlatform);
+  const getManualSnapshotsForCountry = useDashboardStore((state) => state.getManualSnapshotsForCountry);
 
   const formatNum = (value: number) =>
     value >= 1_000_000 ? `${(value / 1_000_000).toFixed(1)}M` :
@@ -27,8 +30,8 @@ export function PlatformCards({ stats, countryId, periodDays }: PlatformCardsPro
       {stats.map((stat) => {
         const info = PLATFORM_INFO[stat.platform as PlatformKey];
         const connections = getConnectionsForCountryPlatform(countryId, stat.platform as PlatformKey);
-        const primaryConnection = connections[0];
-        const manualSnapshots = primaryConnection ? [] : getManualSnapshots(countryId, stat.platform as PlatformKey);
+        const primaryConnection = connections.find(c => c.status === "connected");
+        const manualSnapshots = primaryConnection ? [] : getManualSnapshotsForCountry(countryId, stat.platform as PlatformKey);
         const isManual = manualSnapshots.length > 0;
         const manualAccountLabel = manualSnapshots.map((snapshot) => snapshot.accountName).join(", ");
         const secondaryLabel = stat.platform === "facebook"
@@ -126,6 +129,12 @@ export function PlatformCards({ stats, countryId, periodDays }: PlatformCardsPro
               )}
             </div>
 
+            {isAdmin && isManual && onEditManual && (
+              <button type="button"
+                onClick={(event) => { event.stopPropagation(); onEditManual(stat.platform as PlatformKey); }}
+                className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
+              >✎ Edit manual data / 编辑数据</button>
+            )}
             <div className="mt-3 text-xs font-medium text-accent opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
               View Presentation →
             </div>
