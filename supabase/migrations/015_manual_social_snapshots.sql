@@ -33,37 +33,6 @@ CREATE INDEX IF NOT EXISTS idx_manual_social_country
 CREATE INDEX IF NOT EXISTS idx_manual_social_history_country_date
   ON public.manual_social_history (country_id, captured_at DESC);
 
--- Record one historical observation per account/date, preserving earlier dates.
-CREATE OR REPLACE FUNCTION public.record_manual_social_snapshot()
-RETURNS trigger
-LANGUAGE plpgsql SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  NEW.updated_at := now();
-  IF TG_OP = 'INSERT' OR
-     NEW.followers IS DISTINCT FROM OLD.followers OR
-     NEW.total_views IS DISTINCT FROM OLD.total_views OR
-     NEW.captured_at IS DISTINCT FROM OLD.captured_at OR
-     NEW.is_hidden IS DISTINCT FROM OLD.is_hidden THEN
-    IF NOT NEW.is_hidden THEN
-      INSERT INTO public.manual_social_history
-        (snapshot_id, country_id, platform, account_name, followers, total_views, captured_at, recorded_by)
-      VALUES
-        (NEW.id, NEW.country_id, NEW.platform, NEW.account_name, NEW.followers,
-         NEW.total_views, NEW.captured_at, NEW.updated_by)
-      ON CONFLICT (snapshot_id, captured_at) DO UPDATE
-        SET followers = EXCLUDED.followers,
-            total_views = EXCLUDED.total_views,
-            account_name = EXCLUDED.account_name,
-            recorded_at = now(),
-            recorded_by = EXCLUDED.recorded_by;
-    END IF;
-  END IF;
-  RETURN NEW;
-END;
-$$;
-
 -- BEFORE trigger needed to stamp updated_at; history is captured in AFTER trigger.
 CREATE OR REPLACE FUNCTION public.stamp_manual_social_snapshot()
 RETURNS trigger LANGUAGE plpgsql AS $$
