@@ -77,7 +77,7 @@ export function GlobalReport() {
 
   const sourceData = useMemo(() => {
     const api = rows.filter((row) => row.source === "API Connected");
-    const manual = rows.filter((row) => row.source === "Manual Snapshot");
+    const manual = rows.filter((row) => row.source !== "API Connected");
     return [
       { name: "API Connected", value: api.reduce((sum, row) => sum + row.followers, 0), accounts: api.length },
       { name: "Manual Snapshot", value: manual.reduce((sum, row) => sum + row.followers, 0), accounts: manual.length },
@@ -106,7 +106,7 @@ export function GlobalReport() {
     .map((row) => `${row.countryName} ${PLATFORM_LABELS[row.platform] ?? row.platform} (${number(row.followers)})`)
     .join(", ");
   const manualPriorities = rows
-    .filter((row) => row.source === "Manual Snapshot")
+    .filter((row) => row.source !== "API Connected")
     .sort((a, b) => b.followers - a.followers)
     .slice(0, 3);
   const manualPriorityNames = manualPriorities
