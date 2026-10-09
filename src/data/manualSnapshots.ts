@@ -9,6 +9,7 @@ export interface ManualAccountSnapshot {
   platform: ManualPlatformKey;
   accountName: string;
   followers: number;
+  totalViews?: number;
   hasTrend: boolean;
   capturedAt: string;
 }
@@ -54,4 +55,33 @@ export function getManualSupportedPlatforms(countryId: string): PlatformKey[] {
     if (snapshot.platform !== "x") supported.add(snapshot.platform);
   }
   return [...supported];
+}
+
+/** Persisted admin edits override the legacy shipped snapshots for the same account. */
+export interface ManualSnapshotOverride extends ManualAccountSnapshot {
+  id: string;
+  isHidden: boolean;
+  totalViews: number;
+}
+
+export function manualSnapshotKey(value: Pick<ManualAccountSnapshot, "countryId" | "platform" | "accountName">): string {
+  return [value.countryId, value.platform, value.accountName.trim().toLowerCase()].join("|");
+}
+
+export function mergedManualSnapshots(
+  countryId: string,
+  overrides: ManualSnapshotOverride[],
+  platform?: ManualPlatformKey,
+): ManualAccountSnapshot[] {
+  const byKey = new Map<string, ManualAccountSnapshot>();
+  for (const snapshot of getManualSnapshots(countryId, platform)) {
+    byKey.set(manualSnapshotKey(snapshot), snapshot);
+  }
+  for (const snapshot of overrides) {
+    if (snapshot.countryId !== countryId || (platform && snapshot.platform !== platform)) continue;
+    if (snapshot.isHidden) byKey.delete(manualSnapshotKey(snapshot));
+    else byKey.set(manualSnapshotKey(snapshot), snapshot);
+  }
+  return [...byKey.values()].sort((a, b) =>
+    a.platform.localeCompare(b.platform) || a.accountName.localeCompare(b.accountName));
 }
