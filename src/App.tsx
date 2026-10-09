@@ -6,6 +6,7 @@ import { PlatformManager } from "./pages/PlatformManager";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import { TermsOfService } from "./pages/TermsOfService";
 import { GlobalReport } from "./pages/GlobalReport";
+import { ExecutiveDashboard } from "./pages/ExecutiveDashboard";
 import { CountryReport } from "./pages/CountryReport";
 import { LoginPage } from "./pages/LoginPage";
 import { useAuth } from "./hooks/useAuth";
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/" element={<PresentationMode />} />
         <Route path="/map" element={<HomePage />} />
         <Route path="/report" element={<GlobalReport />} />
+        <Route path="/executive" element={<ExecutiveDashboard />} />
         <Route path="/country/:id" element={<CountryDashboard />} />
         <Route path="/country/:id/report" element={<CountryReport />} />
         <Route path="/present" element={<PresentationMode />} />
