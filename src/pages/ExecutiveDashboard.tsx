@@ -72,6 +72,7 @@ export function ExecutiveDashboard() {
   const countries = useDashboardStore(s => s.countries);
   const connections = useDashboardStore(s => s.platformConnections);
   const stats = useDashboardStore(s => s.accountStats);
+  const manualOverrides = useDashboardStore(s => s.manualSnapshotOverrides);
   const [inputs, setInputs] = useState<ExecutiveData>(EMPTY_EXECUTIVE);
   const [ready, setReady] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -108,8 +109,8 @@ export function ExecutiveDashboard() {
     return () => { active = false; };
   }, []);
 
-  const liveRows = useMemo(() => buildGlobalReportRows(countries, connections, stats),
-    [countries, connections, stats]);
+  const liveRows = useMemo(() => buildGlobalReportRows(countries, connections, stats, manualOverrides),
+    [countries, connections, stats, manualOverrides]);
   const accounts = useMemo(() => mergeAccounts(liveRows, inputs), [liveRows, inputs]);
   const totals = useMemo(() => {
     const groups = new Map<string, { id: string; name: string; followers: number; accounts: ExecutiveAccount[] }>();
