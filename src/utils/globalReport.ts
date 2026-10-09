@@ -1,7 +1,7 @@
 import type { AccountStats, Country, PlatformConnection } from "../types";
-import { MANUAL_ACCOUNT_SNAPSHOTS, mergedManualSnapshots, type ManualPlatformKey, type ManualSnapshotOverride } from "../data/manualSnapshots";
+import { MANUAL_ACCOUNT_SNAPSHOTS, mergedManualSnapshots, manualSnapshotKey, type ManualPlatformKey, type ManualSnapshotOverride } from "../data/manualSnapshots";
 
-export type ReportDataSource = "API Connected" | "Manual Snapshot";
+export type ReportDataSource = "API Connected" | "Manual Snapshot" | "Manual Edited";
 
 export interface GlobalReportRow {
   countryId: string;
@@ -52,6 +52,7 @@ export function buildGlobalReportRows(
     ...manualOverrides.map(s => s.countryId),
   ]);
   const manual = [...countryIds].flatMap(id => mergedManualSnapshots(id, manualOverrides));
+  const editedKeys = new Set(manualOverrides.filter(s => !s.isHidden).map(manualSnapshotKey));
   for (const snapshot of manual) {
     if (connectedKeys.has(`${snapshot.countryId}:${snapshot.platform}`)) continue;
     rows.push({
@@ -62,7 +63,7 @@ export function buildGlobalReportRows(
       accountName: snapshot.accountName,
       followers: snapshot.followers,
       secondaryMetric: snapshot.totalViews ?? null,
-      source: "Manual Snapshot",
+      source: editedKeys.has(manualSnapshotKey(snapshot)) ? "Manual Edited" : "Manual Snapshot",
       lastUpdated: snapshot.capturedAt,
     });
   }
